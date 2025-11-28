@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pixel 7 Robust AI (Fixed)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #0f172a; color: #e2e8f0; font-family: system-ui, -apple-system, sans-serif; }
+        .console-line { font-family: 'Courier New', monospace; padding: 2px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .console-error { color: #ef4444; background: rgba(239, 68, 68, 0.1); }
+        .console-success { color: #4ade80; }
+        .console-warn { color: #f59e0b; }
+        
+        /* Loading Animation */
+        .loader { width: 100%; height: 4px; background: #1e293b; overflow: hidden; position: relative; }
+        .loader-bar { height: 100%; background: #38bdf8; width: 0%; transition: width 0.3s ease; }
+        
+        /* Chat Bubbles */
+        .msg-user { background: #38bdf8; color: #000; align-self: flex-end; border-radius: 16px 16px 2px 16px; word-break: break-word; }
+        .msg-ai { background: #334155; color: #fff; align-self: flex-start; border-radius: 16px 16px 16px 2px; word-break: break-word; }
+        
+        /* Markdown Style Fixes inside Chat */
+        .msg-ai p { margin-bottom: 0.5rem; }
+        .msg-ai p:last-child { margin-bottom: 0; }
+    </style>
+</head>
+<body class="h-screen flex flex-col">
+
+    <!-- HEADER & STATUS -->
+    <header class="bg-slate-900 border-b border-slate-800 p-3 shadow-lg z-10">
+        <div class="flex justify-between items-center">
+            <h1 class="font-bold text-lg flex items-center gap-2">
+                🤖 Pixel Core
+                <span id="api-badge" class="text-[10px] bg-slate-700 px-2 py-0.5 rounded text-slate-400">INIT</span>
+            </h1>
+            <button id="toggle-logs" class="text-xs text-slate-400 border border-slate-700 px-2 py-1 rounded hover:bg-slate-800">Logs</button>
+        </div>
+        <!-- Wake Lock Status -->
+        <div id="wakelock-status" class="text-[10px] text-slate-500 mt-1 flex items-center gap-1 hidden">
+            <span class="w-2 h-2 rounded-full bg-green-500"></span> Display wachgehalten
+        </div>
+    </header>
+
+    <!-- LOG / DIAGNOSE PANEL -->
+    <div id="log-panel" class="bg-black/90 text-xs p-2 h-40 overflow-y-auto border-b border-slate-700 hidden absolute top-14 left-0 right-0 z-30 font-mono shadow-2xl">
+        <div class="text-slate-500 mb-2 sticky top-0 bg-black/90 w-full">--- SYSTEM DIAGNOSE ---</div>
+        <div id="logs-content"></div>
+    </div>
+
+    <!-- MAIN CHAT -->
+    <main id="chat-box" class="flex-1 overflow-y-auto p-4 flex flex-col gap-3 relative scroll-smooth">
+        <div id="welcome-box" class="bg-slate-800/50 p-4 rounded-xl text-sm border border-slate-700 text-center mx-auto max-w-sm mt-4">
+            <h2 class="font-bold text-sky-400 mb-2">Systemprüfung läuft...</h2>
+            <p class="text-slate-400 text-xs mb-3">
+                Ich prüfe Gemini Nano (Native) und WebGPU Support auf deinem Pixel 7.
+            </p>
+            <div id="init-loader" class="loader rounded-full"><div class="loader-bar" style="width: 30%"></div></div>
+        </div>
+    </main>
+
+    <!-- CONTROLS -->
+    <footer class="bg-slate-900 p-3 border-t border-slate-800 z-20">
+        <!-- Error / Info Banner -->
+        <div id="status-banner" class="hidden mb-2 text-[10px] p-2 rounded bg-amber-900/30 text-amber-200 border border-amber-800/50">
+            ⚠️ Status Meldung
+        </div>
+
+        <!-- Model Selection (Advanced) -->
+        <div id="model-selector" class="hidden mb-2">
+             <select id="model-select" class="w-full bg-slate-800 text-xs text-slate-300 p-2 rounded border border-slate-700">
+                <option value="HuggingFaceTB/SmolLM2-135M-Instruct">SmolLM2 135M (Extrem Schnell) - Empfohlen</option>
+                <option value="Qwen/Qwen2.5-0.5B-Instruct">Qwen 2.5 0.5B (Sehr gut, ~400MB)</option>
+                <option value="Xenova/gemma-2-2b-it">Gemma 2 2B (Google, Schwer, ~1.5GB)</option>
+            </select>
+            <button id="btn-load-custom" class="w-full mt-1 bg-slate-700 text-[10px] py-1 rounded text-white hover:bg-slate-600">Modell Laden / Wechseln</button>
+        </div>
+
+        <div class="flex gap-2">
+            <textarea id="user-input" rows="1" disabled placeholder="Warte auf Initialisierung..." class="flex-1 bg-slate-800 text-white rounded-lg px-3 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-sky-500 resize-none"></textarea>
+            <button id="send-btn" disabled class="bg-sky-500 text-black font-bold px-4 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-all">
+                ➤
+            </button>
+        </div>
+    </footer>
+
+    <script type="module">
+        // FIX 1: Importiere eine stabile Version von Transformers.js V3
+        import { pipeline, env, TextStreamer } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.2';
+
+        // --- KONFIGURATION ---
+        env.allowLocalModels = false; 
+        env.useBrowserCache = true;   
+
+        // --- STATE MANAGEMENT ---
+        const State = {
+            backend: null, // 'native' | 'webgpu'
+            pipeline: null,
+            tokenizer: null,
+            nativeSession: null,
+            isGenerating: false,
+            wakeLock: null,
+            messages: []
+        };
+
+        const UI = {
+            logs: document.getElementById('logs-content'),
+            logPanel: document.getElementById('log-panel'),
+            chat: document.getElementById('chat-box'),
+            input: document.getElementById('user-input'),
+            btnSend: document.getElementById('send-btn'),
+            banner: document.getElementById('status-banner'),
+            badge: document.getElementById('api-badge'),
+            loader: document.querySelector('.loader-bar'),
+            modelSelect: document.getElementById('model-select'),
+            modelSelectorDiv: document.getElementById('model-selector'),
+            welcomeBox: document.getElementById('welcome-box')
+        };
+
+        function log(msg, type = 'info') {
+            const el = document.createElement('div');
+            el.className = `console-line console-${type}`;
+            const time = new Date().toLocaleTimeString().split(' ')[0];
+            el.innerHTML = `<span class="opacity-50">[${time}]</span> ${msg}`;
+            UI.logs.appendChild(el);
+            
+            // Auto scroll im Log
+            UI.logPanel.scrollTop = UI.logPanel.scrollHeight;
+            console.log(`[AI] ${msg}`);
+            
+            if(type === 'error') {
+                UI.banner.innerHTML = msg;
+                UI.banner.className = `mb-2 text-[10px] p-2 rounded border bg-red-900/30 text-red-200 border-red-800`;
+                UI.banner.classList.remove('hidden');
+            }
+        }
+
+        async function requestWakeLock() {
+            try {
+                if ('wakeLock' in navigator) {
+                    State.wakeLock = await navigator.wakeLock.request('screen');
+                    document.getElementById('wakelock-status').classList.remove('hidden');
+                    log("⚡ Screen Wake Lock aktiv", "success");
+                }
+            } catch (err) {
+                log("Wake Lock Info: " + err.name, "warn");
+            }
+        }
+
+        // --- INIT ---
+        async function initSystem() {
+            requestWakeLock();
+            log("Starte System-Analyse...", "info");
+
+            // Protocol Check
+            if (window.location.protocol === 'file:') {
+                log("⚠️ 'file://' Protokoll erkannt. WebGPU erfordert oft http/https (localhost).", "warn");
+            }
+
+            // 1. Native AI Check (Google Built-in)
+            const nativeAvailable = await checkNativeAI();
+            if (nativeAvailable) {
+                return setupNativeInterface();
+            }
+
+            // 2. WebGPU Check
+            if (navigator.gpu) {
+                log("✅ WebGPU Adapter gefunden.", "success");
+                UI.modelSelectorDiv.classList.remove('hidden');
+                
+                // Wir laden NICHT automatisch, sondern lassen den User entscheiden oder laden das kleinste
+                // Um Crash zu vermeiden, laden wir das erste Modell in der Liste
+                log("Initialisiere WebGPU Pipeline...", "info");
+                return loadWebGPUModel(UI.modelSelect.value);
+            } else {
+                log("❌ Kein WebGPU Support erkannt.", "error");
+                UI.banner.innerHTML = "Fehler: Hardware-Beschleunigung fehlt. Bitte Chrome Flags prüfen oder Updates installieren.";
+                UI.banner.classList.remove('hidden');
+            }
+        }
+
+        // --- NATIVE AI ---
+        async function checkNativeAI() {
+            if (!window.ai || !window.ai.languageModel) {
+                log("Native API (window.ai.languageModel) nicht gefunden.", "info");
+                return false;
+            }
+            try {
+                const capabilities = await window.ai.languageModel.capabilities();
+                if (capabilities.available === 'readily') {
+                    log("🚀 Google Gemini Nano ist SOFORT verfügbar!", "success");
+                    return true;
+                } else {
+                    log(`Native AI Status: ${capabilities.available}`, "warn");
+                }
+            } catch (e) {
+                log("Native AI Check fehlgeschlagen: " + e.message, "warn");
+            }
+            return false;
+        }
+
+        async function setupNativeInterface() {
+            try {
+                State.nativeSession = await window.ai.languageModel.create({
+                    systemPrompt: "Du bist ein hilfreicher Assistent."
+                });
+                State.backend = 'native';
+                UI.badge.textContent = "NATIVE: GEMINI";
+                UI.badge.className = "text-[10px] bg-blue-600 text-white px-2 py-0.5 rounded";
+                UI.welcomeBox.style.display = 'none';
+                enableChat("Bereit (Google Native)");
+            } catch (e) {
+                log("Fallback auf WebGPU, da Native Init fehlschlug.", "error");
+                loadWebGPUModel(UI.modelSelect.value);
+            }
+        }
+
+        // --- WEBGPU ---
+        async function loadWebGPUModel(modelID) {
+            State.backend = 'webgpu';
+            disableChat("Lade Modell... (Dies kann dauern)");
+            UI.badge.textContent = "GPU: LADEN";
+            UI.loader.style.width = "5%";
+            UI.banner.classList.remove('hidden');
+            UI.banner.textContent = "Initialisiere Modell und Shader...";
+            
+            try {
+                if (State.pipeline) {
+                    log("Lösche alte Pipeline...", "info");
+                    // Dispose Versuch (Soft reset)
+                    State.pipeline = null;
+                }
+
+                log(`Lade Modell: ${modelID}`, "info");
+                
+                // FIX 2 & 3: dtype 'q4' für Mobile erzwingen, device explizit setzen
+                State.pipeline = await pipeline('text-generation', modelID, {
+                    device: 'webgpu',
+                    dtype: 'q4', // WICHTIG: 4-bit Quantisierung spart RAM auf Pixel 7
+                    progress_callback: (x) => {
+                        if (x.status === 'progress') {
+                            const percent = Math.round(x.progress * 100);
+                            UI.loader.style.width = `${percent}%`;
+                            if(x.file.endsWith('.onnx') || x.file.endsWith('.model')) {
+                                UI.banner.textContent = `Lade Weights (${x.file.split('/').pop()}): ${percent}%`;
+                            }
+                        }
+                        if (x.status === 'done') {
+                            log(`Geladen: ${x.file}`, "success");
+                        }
+                    }
+                });
+
+                UI.loader.style.width = "100%";
+                UI.badge.textContent = "WEBGPU: READY";
+                UI.badge.className = "text-[10px] bg-green-600 text-white px-2 py-0.5 rounded";
+                UI.banner.classList.add('hidden');
+                UI.welcomeBox.style.display = 'none';
+                enableChat("Bereit (WebGPU)");
+
+            } catch (e) {
+                console.error(e);
+                UI.loader.style.background = "#ef4444";
+                let errorMsg = e.message;
+                
+                if (errorMsg.includes("shared memory")) {
+                    errorMsg = "Zu wenig Speicher (RAM). Wähle ein kleineres Modell.";
+                }
+                
+                log("FATAL ERROR: " + errorMsg, "error");
+            }
+        }
+
+        // --- CHAT LOGIK ---
+        async function generateResponse() {
+            const text = UI.input.value.trim();
+            if (!text) return;
+
+            addMessage(text, 'user');
+            UI.input.value = '';
+            disableChat("Generiere...");
+            State.isGenerating = true;
+
+            const aiMsgBubble = addMessage('<span class="animate-pulse">...</span>', 'ai');
+            let fullText = "";
+
+            try {
+                // --- STRATEGIE 1: NATIVE ---
+                if (State.backend === 'native') {
+                    const stream = State.nativeSession.promptStreaming(text);
+                    for await (const chunk of stream) {
+                        const cleanChunk = chunk.trim();
+                        if (cleanChunk.length > fullText.length) {
+                             aiMsgBubble.textContent = cleanChunk;
+                             fullText = cleanChunk;
+                             scrollToBottom();
+                        }
+                    }
+                } 
+                // --- STRATEGIE 2: WEBGPU ---
+                else if (State.backend === 'webgpu') {
+                    
+                    // Messages Array aufbauen für Kontext
+                    State.messages.push({ role: "user", content: text });
+
+                    // FIX 4: CallbackStreamer Implementierung für Live-Updates
+                    const streamer = new TextStreamer(State.pipeline.tokenizer, {
+                        skip_prompt: true,
+                        skip_special_tokens: true,
+                        callback_function: (tokenText) => {
+                            // Diese Funktion wird für jeden generierten Token aufgerufen
+                            fullText += tokenText;
+                            aiMsgBubble.textContent = fullText;
+                            scrollToBottom();
+                        }
+                    });
+
+                    // Generierung starten
+                    const output = await State.pipeline(State.messages, {
+                        max_new_tokens: 256,
+                        temperature: 0.7,
+                        do_sample: true,
+                        top_k: 20, // Reduziert für Geschwindigkeit
+                        streamer: streamer, // FIX: Hier den Streamer übergeben
+                    });
+
+                    // Speichere die Antwort für den Verlauf (Kontext)
+                    // Beachte: output[0].generated_text beinhaltet bei chat-models oft das gesamte array
+                    // Wir nehmen hier vereinfacht den fullText an
+                    State.messages.push({ role: "assistant", content: fullText });
+                }
+
+            } catch (err) {
+                log("Inference Fehler: " + err.message, "error");
+                aiMsgBubble.innerHTML = `<span class="text-red-400">⚠️ Fehler: ${err.message}</span>`;
+            } finally {
+                State.isGenerating = false;
+                enableChat();
+                UI.input.focus();
+            }
+        }
+
+        function addMessage(text, role) {
+            const div = document.createElement('div');
+            div.className = `p-3 text-sm max-w-[85%] shadow-md ${role === 'user' ? 'msg-user' : 'msg-ai'}`;
+            div.innerHTML = text; 
+            UI.chat.appendChild(div);
+            scrollToBottom();
+            return div;
+        }
+
+        function scrollToBottom() {
+            UI.chat.scrollTop = UI.chat.scrollHeight;
+        }
+
+        function disableChat(msg) {
+            UI.input.disabled = true;
+            UI.btnSend.disabled = true;
+            if(msg) UI.input.placeholder = msg;
+        }
+
+        function enableChat(msg) {
+            UI.input.disabled = false;
+            UI.btnSend.disabled = false;
+            UI.input.placeholder = msg || "Nachricht eingeben...";
+            UI.input.focus();
+        }
+
+        // --- EVENT LISTENER ---
+        UI.btnSend.addEventListener('click', generateResponse);
+        UI.input.addEventListener('keydown', (e) => { // keydown ist besser als keypress
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                generateResponse();
+            }
+        });
+        
+        document.getElementById('toggle-logs').addEventListener('click', () => {
+            UI.logPanel.classList.toggle('hidden');
+        });
+        
+        document.getElementById('btn-load-custom').addEventListener('click', () => {
+            // Reset Messages bei Modellwechsel
+            State.messages = [];
+            document.querySelectorAll('.msg-user, .msg-ai').forEach(e => e.remove());
+            loadWebGPUModel(UI.modelSelect.value);
+        });
+
+        // Start
+        initSystem();
+
+    </script>
+</body>
+</html>

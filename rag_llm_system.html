@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG-LLM System - Deutsche KI mit Wissensdatenbank</title>
+    
+    <!-- PyScript für Python im Browser -->
+    <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css">
+    <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        body { 
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #e2e8f0; 
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+        
+        .glass-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+        
+        .chat-container {
+            height: calc(100vh - 280px);
+            overflow-y: auto;
+            scroll-behavior: smooth;
+        }
+        
+        .msg-user {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+            border-radius: 18px 18px 4px 18px;
+            padding: 12px 16px;
+            max-width: 80%;
+            margin-left: auto;
+            word-wrap: break-word;
+            box-shadow: 0 4px 6px rgba(59, 130, 246, 0.3);
+        }
+        
+        .msg-ai {
+            background: linear-gradient(135deg, #334155 0%, #475569 100%);
+            color: #e2e8f0;
+            border-radius: 18px 18px 18px 4px;
+            padding: 12px 16px;
+            max-width: 80%;
+            margin-right: auto;
+            word-wrap: break-word;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        }
+        
+        .msg-system {
+            background: rgba(251, 191, 36, 0.1);
+            color: #fbbf24;
+            border: 1px solid rgba(251, 191, 36, 0.3);
+            border-radius: 8px;
+            padding: 8px 12px;
+            text-align: center;
+            font-size: 0.875rem;
+            margin: 8px auto;
+        }
+        
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .status-ready { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
+        .status-loading { background: rgba(251, 191, 36, 0.2); color: #fbbf24; }
+        .status-error { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+        
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .progress-bar {
+            height: 4px;
+            background: rgba(59, 130, 246, 0.3);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3b82f6, #2563eb);
+            transition: width 0.3s ease;
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+        }
+        
+        .folder-item {
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .folder-item:hover {
+            background: rgba(59, 130, 246, 0.1);
+        }
+        
+        .folder-item.selected {
+            background: rgba(59, 130, 246, 0.2);
+            border: 1px solid rgba(59, 130, 246, 0.5);
+        }
+        
+        textarea:focus, input:focus, select:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        .button-primary {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            transition: all 0.2s;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .button-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(59, 130, 246, 0.4);
+        }
+        
+        .button-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .tab-button {
+            padding: 8px 16px;
+            border-radius: 8px 8px 0 0;
+            transition: all 0.2s;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+        }
+        
+        .tab-button.active {
+            background: rgba(59, 130, 246, 0.1);
+            border-bottom-color: #3b82f6;
+        }
+        
+        .code-block {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+            overflow-x: auto;
+        }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: rgba(30, 41, 59, 0.5);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: rgba(59, 130, 246, 0.5);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(59, 130, 246, 0.7);
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4">
+
+    <!-- Header -->
+    <header class="glass-card rounded-2xl p-4 mb-4">
+        <div class="flex justify-between items-center">
+            <div>
+                <h1 class="text-2xl font-bold flex items-center gap-3">
+                    <span class="text-4xl">🧠</span>
+                    <span>RAG-LLM System</span>
+                </h1>
+                <p class="text-sm text-slate-400 mt-1">Intelligente KI mit deutscher Wissensdatenbank</p>
+            </div>
+            <div class="flex flex-col gap-2 items-end">
+                <div id="status-badge" class="status-badge status-loading">
+                    <div class="pulse-dot bg-yellow-500"></div>
+                    <span>Initialisiere...</span>
+                </div>
+                <button id="toggle-settings" class="text-xs text-slate-400 hover:text-white transition">
+                    ⚙️ Einstellungen
+                </button>
+            </div>
+        </div>
+        
+        <!-- Progress Bar -->
+        <div id="progress-container" class="mt-3 hidden">
+            <div class="progress-bar">
+                <div id="progress-fill" class="progress-fill" style="width: 0%"></div>
+            </div>
+            <p id="progress-text" class="text-xs text-slate-400 mt-1">Lade Ressourcen...</p>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-4">
+        
+        <!-- Sidebar - Knowledge Base -->
+        <div class="lg:col-span-1 glass-card rounded-2xl p-4">
+            <h2 class="text-lg font-bold mb-4 flex items-center gap-2">
+                📚 Wissensdatenbank
+            </h2>
+            
+            <!-- Tabs -->
+            <div class="flex gap-2 mb-4 text-sm">
+                <button class="tab-button active" onclick="switchTab('documents')">Dokumente</button>
+                <button class="tab-button" onclick="switchTab('models')">Modelle</button>
+            </div>
+            
+            <!-- Documents Tab -->
+            <div id="tab-documents">
+                <div class="mb-4">
+                    <label class="block text-sm mb-2">Dokument hochladen</label>
+                    <input type="file" id="file-upload" accept=".pdf,.txt,.md" multiple 
+                           class="text-xs bg-slate-700 rounded p-2 w-full">
+                    <button onclick="uploadDocuments()" class="mt-2 text-xs button-primary w-full">
+                        📤 Hochladen
+                    </button>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-sm mb-2">Download-Ordner scannen</label>
+                    <button onclick="scanDownloadFolder()" class="text-xs button-primary w-full">
+                        🔍 Ordner durchsuchen
+                    </button>
+                </div>
+                
+                <div class="mt-4">
+                    <h3 class="text-sm font-semibold mb-2">Geladene Dokumente (<span id="doc-count">0</span>)</h3>
+                    <div id="document-list" class="space-y-1 max-h-60 overflow-y-auto text-xs">
+                        <p class="text-slate-500">Keine Dokumente geladen</p>
+                    </div>
+                </div>
+                
+                <div class="mt-4 p-3 bg-blue-900/20 rounded-lg border border-blue-800/30">
+                    <div class="text-xs">
+                        <div class="font-semibold mb-1">📊 RAG Status</div>
+                        <div class="text-slate-400">
+                            <div>Vektoren: <span id="vector-count" class="text-white">0</span></div>
+                            <div>Chunks: <span id="chunk-count" class="text-white">0</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Models Tab -->
+            <div id="tab-models" class="hidden">
+                <div class="mb-4">
+                    <label class="block text-sm mb-2">Verfügbare Modelle</label>
+                    <select id="model-select" class="w-full bg-slate-700 text-sm p-2 rounded">
+                        <option value="DiscoResearch/DiscoLM-German-7b-v1">DiscoLM German 7B (Beste Qualität) 🇩🇪</option>
+                        <option value="Qwen/Qwen2.5-1.5B-Instruct">Qwen 2.5 1.5B (Schnell, Multilingual)</option>
+                        <option value="HuggingFaceTB/SmolLM2-1.7B-Instruct" selected>SmolLM2 1.7B (Sehr schnell)</option>
+                    </select>
+                </div>
+                
+                <button onclick="loadModel()" class="button-primary w-full mb-4">
+                    🔄 Modell laden
+                </button>
+                
+                <div class="p-3 bg-slate-800 rounded-lg text-xs">
+                    <div class="font-semibold mb-2">ℹ️ Modell-Info</div>
+                    <div id="model-info" class="text-slate-400">
+                        Wähle ein Modell aus und lade es.
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Chat Area -->
+        <div class="lg:col-span-3 glass-card rounded-2xl p-4 flex flex-col">
+            <h2 class="text-lg font-bold mb-4 flex items-center gap-2">
+                💬 Chat
+                <span class="text-xs text-slate-400 font-normal ml-auto">
+                    RAG: <span id="rag-enabled" class="text-green-400">Aktiv</span>
+                </span>
+            </h2>
+            
+            <!-- Chat Messages -->
+            <div id="chat-messages" class="chat-container flex-1 space-y-3 mb-4">
+                <div class="msg-system">
+                    🚀 System bereit. Lade ein deutsches Modell und füge Dokumente hinzu!
+                </div>
+            </div>
+            
+            <!-- Input Area -->
+            <div class="flex gap-2">
+                <textarea id="user-input" rows="1" 
+                          placeholder="Stelle eine Frage..." 
+                          class="flex-1 bg-slate-800 text-white rounded-xl px-4 py-3 resize-none focus:ring-2 focus:ring-blue-500"
+                          disabled></textarea>
+                <button id="send-button" onclick="sendMessage()" 
+                        class="button-primary px-6" disabled>
+                    ➤
+                </button>
+            </div>
+            
+            <div class="mt-2 flex gap-2 text-xs">
+                <label class="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" id="use-rag" checked class="rounded">
+                    <span>RAG verwenden</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer ml-4">
+                    <input type="checkbox" id="stream-mode" checked class="rounded">
+                    <span>Streaming</span>
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
+        <div class="glass-card rounded-2xl p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold">⚙️ Einstellungen</h2>
+                <button onclick="closeSettings()" class="text-slate-400 hover:text-white">✕</button>
+            </div>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm mb-2">RAG Chunk-Größe</label>
+                    <input type="number" id="chunk-size" value="512" class="w-full bg-slate-700 p-2 rounded">
+                </div>
+                
+                <div>
+                    <label class="block text-sm mb-2">RAG Top-K Ergebnisse</label>
+                    <input type="number" id="top-k" value="3" class="w-full bg-slate-700 p-2 rounded">
+                </div>
+                
+                <div>
+                    <label class="block text-sm mb-2">Temperatur</label>
+                    <input type="range" id="temperature" min="0" max="1" step="0.1" value="0.7" 
+                           class="w-full" oninput="document.getElementById('temp-value').textContent = this.value">
+                    <span id="temp-value" class="text-xs text-slate-400">0.7</span>
+                </div>
+                
+                <div>
+                    <label class="block text-sm mb-2">Max. Tokens</label>
+                    <input type="number" id="max-tokens" value="512" class="w-full bg-slate-700 p-2 rounded">
+                </div>
+                
+                <button onclick="saveSettings()" class="button-primary w-full">
+                    💾 Einstellungen speichern
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PyScript Configuration -->
+    <py-config>
+        packages = [
+            "numpy",
+            "scikit-learn"
+        ]
+    </py-config>
+
+    <!-- Python Backend (PyScript) -->
+    <py-script>
+import js
+import json
+from datetime import datetime
+
+class RAGSystem:
+    def __init__(self):
+        self.documents = []
+        self.vectors = []
+        self.chunks = []
+        self.chunk_size = 512
+        
+    def add_document(self, content, filename):
+        """Fügt ein Dokument zur Datenbank hinzu"""
+        chunks = self.chunk_text(content, self.chunk_size)
+        
+        for i, chunk in enumerate(chunks):
+            chunk_id = f"{filename}_{i}"
+            self.chunks.append({
+                'id': chunk_id,
+                'content': chunk,
+                'filename': filename,
+                'index': i
+            })
+        
+        self.documents.append({
+            'filename': filename,
+            'content': content,
+            'added': datetime.now().isoformat()
+        })
+        
+        # Einfache TF-IDF Vektorisierung
+        self.update_vectors()
+        return len(chunks)
+    
+    def chunk_text(self, text, chunk_size):
+        """Teilt Text in Chunks auf"""
+        words = text.split()
+        chunks = []
+        current_chunk = []
+        current_size = 0
+        
+        for word in words:
+            current_chunk.append(word)
+            current_size += len(word) + 1
+            
+            if current_size >= chunk_size:
+                chunks.append(' '.join(current_chunk))
+                current_chunk = []
+                current_size = 0
+        
+        if current_chunk:
+            chunks.append(' '.join(current_chunk))
+        
+        return chunks
+    
+    def update_vectors(self):
+        """Aktualisiert die Vektordatenbank (vereinfachte Version)"""
+        # In einer echten Implementation würde hier ein Embedding-Modell verwendet
+        # Für diese Demo verwenden wir einfache Wortfrequenzen
+        pass
+    
+    def search(self, query, top_k=3):
+        """Sucht relevante Chunks basierend auf der Query"""
+        if not self.chunks:
+            return []
+        
+        # Einfache Keyword-basierte Suche
+        query_words = set(query.lower().split())
+        scored_chunks = []
+        
+        for chunk in self.chunks:
+            chunk_words = set(chunk['content'].lower().split())
+            score = len(query_words & chunk_words)
+            if score > 0:
+                scored_chunks.append((score, chunk))
+        
+        # Sortiere nach Score und gib Top-K zurück
+        scored_chunks.sort(reverse=True, key=lambda x: x[0])
+        return [chunk for score, chunk in scored_chunks[:top_k]]
+    
+    def get_stats(self):
+        """Gibt Statistiken zurück"""
+        return {
+            'documents': len(self.documents),
+            'chunks': len(self.chunks),
+            'vectors': len(self.vectors)
+        }
+
+# Globale RAG-Instanz
+rag_system = RAGSystem()
+
+# Funktionen für JavaScript
+def process_document(content, filename):
+    """Verarbeitet ein Dokument"""
+    try:
+        chunks = rag_system.add_document(content, filename)
+        stats = rag_system.get_stats()
+        return json.dumps({
+            'success': True,
+            'chunks': chunks,
+            'stats': stats
+        })
+    except Exception as e:
+        return json.dumps({
+            'success': False,
+            'error': str(e)
+        })
+
+def search_rag(query, top_k=3):
+    """Führt RAG-Suche durch"""
+    try:
+        results = rag_system.search(query, top_k)
+        return json.dumps({
+            'success': True,
+            'results': results
+        })
+    except Exception as e:
+        return json.dumps({
+            'success': False,
+            'error': str(e)
+        })
+
+def get_rag_stats():
+    """Gibt RAG-Statistiken zurück"""
+    return json.dumps(rag_system.get_stats())
+
+# Exponiere Funktionen nach JavaScript
+js.window.pyProcessDocument = process_document
+js.window.pySearchRAG = search_rag
+js.window.pyGetRAGStats = get_rag_stats
+
+print("✅ Python RAG System initialisiert")
+    </py-script>
+
+    <!-- JavaScript Main Logic -->
+    <script type="module">
+        import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.2';
+
+        // Konfiguration
+        env.allowLocalModels = false;
+        env.useBrowserCache = true;
+
+        // Globaler State
+        const State = {
+            model: null,
+            isReady: false,
+            isGenerating: false,
+            documents: [],
+            chatHistory: []
+        };
+
+        // UI Elemente
+        const UI = {
+            statusBadge: document.getElementById('status-badge'),
+            progressContainer: document.getElementById('progress-container'),
+            progressFill: document.getElementById('progress-fill'),
+            progressText: document.getElementById('progress-text'),
+            chatMessages: document.getElementById('chat-messages'),
+            userInput: document.getElementById('user-input'),
+            sendButton: document.getElementById('send-button'),
+            documentList: document.getElementById('document-list'),
+            docCount: document.getElementById('doc-count'),
+            vectorCount: document.getElementById('vector-count'),
+            chunkCount: document.getElementById('chunk-count'),
+            modelSelect: document.getElementById('model-select'),
+            useRAG: document.getElementById('use-rag'),
+            streamMode: document.getElementById('stream-mode')
+        };
+
+        // Status Update
+        function updateStatus(status, message) {
+            const badge = UI.statusBadge;
+            badge.className = `status-badge status-${status}`;
+            
+            const dot = badge.querySelector('.pulse-dot');
+            const text = badge.querySelector('span');
+            
+            if (status === 'ready') {
+                dot.className = 'pulse-dot bg-green-500';
+                text.textContent = message || 'Bereit';
+            } else if (status === 'loading') {
+                dot.className = 'pulse-dot bg-yellow-500';
+                text.textContent = message || 'Lädt...';
+            } else if (status === 'error') {
+                dot.className = 'pulse-dot bg-red-500';
+                text.textContent = message || 'Fehler';
+            }
+        }
+
+        // Progress Update
+        function updateProgress(percent, text) {
+            UI.progressContainer.classList.remove('hidden');
+            UI.progressFill.style.width = `${percent}%`;
+            UI.progressText.textContent = text || `${percent}% abgeschlossen`;
+            
+            if (percent >= 100) {
+                setTimeout(() => {
+                    UI.progressContainer.classList.add('hidden');
+                }, 1000);
+            }
+        }
+
+        // Modell laden
+        window.loadModel = async function() {
+            const modelId = UI.modelSelect.value;
+            updateStatus('loading', 'Lade Modell...');
+            updateProgress(0, 'Initialisiere...');
+            
+            try {
+                State.model = await pipeline('text-generation', modelId, {
+                    device: 'webgpu',
+                    dtype: 'q4',
+                    progress_callback: (progress) => {
+                        if (progress.status === 'progress') {
+                            const percent = Math.round(progress.progress * 100);
+                            updateProgress(percent, `Lade ${progress.file.split('/').pop()}`);
+                        }
+                    }
+                });
+                
+                updateProgress(100, 'Modell geladen!');
+                updateStatus('ready', 'Bereit');
+                State.isReady = true;
+                
+                UI.userInput.disabled = false;
+                UI.sendButton.disabled = false;
+                
+                addSystemMessage(`✅ Modell "${modelId.split('/')[1]}" erfolgreich geladen!`);
+                
+                // Model Info Update
+                document.getElementById('model-info').innerHTML = `
+                    <div class="space-y-1">
+                        <div><strong>Modell:</strong> ${modelId.split('/')[1]}</div>
+                        <div><strong>Status:</strong> <span class="text-green-400">Aktiv</span></div>
+                        <div><strong>Sprache:</strong> ${modelId.includes('German') ? '🇩🇪 Deutsch' : '🌍 Multilingual'}</div>
+                    </div>
+                `;
+                
+            } catch (error) {
+                console.error('Fehler beim Laden:', error);
+                updateStatus('error', 'Ladefehler');
+                addSystemMessage(`❌ Fehler: ${error.message}`);
+            }
+        };
+
+        // Dokumente hochladen
+        window.uploadDocuments = async function() {
+            const fileInput = document.getElementById('file-upload');
+            const files = fileInput.files;
+            
+            if (files.length === 0) {
+                addSystemMessage('⚠️ Bitte wähle Dateien aus');
+                return;
+            }
+            
+            for (let file of files) {
+                const reader = new FileReader();
+                reader.onload = async function(e) {
+                    const content = e.target.result;
+                    await processDocument(content, file.name);
+                };
+                
+                if (file.name.endsWith('.pdf')) {
+                    addSystemMessage('⚠️ PDF-Verarbeitung kommt bald. Bitte .txt oder .md verwenden.');
+                } else {
+                    reader.readAsText(file);
+                }
+            }
+        };
+
+        // Dokument verarbeiten
+        async function processDocument(content, filename) {
+            try {
+                // Warte auf PyScript Initialisierung
+                if (!window.pyProcessDocument) {
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+                
+                const resultJson = window.pyProcessDocument(content, filename);
+                const result = JSON.parse(resultJson);
+                
+                if (result.success) {
+                    State.documents.push({ filename, content });
+                    updateDocumentList();
+                    updateRAGStats(result.stats);
+                    addSystemMessage(`✅ "${filename}" hinzugefügt (${result.chunks} Chunks)`);
+                } else {
+                    addSystemMessage(`❌ Fehler: ${result.error}`);
+                }
+            } catch (error) {
+                console.error('Fehler:', error);
+                addSystemMessage(`❌ Fehler beim Verarbeiten: ${error.message}`);
+            }
+        }
+
+        // Download-Ordner scannen (File System Access API)
+        window.scanDownloadFolder = async function() {
+            try {
+                if (!window.showDirectoryPicker) {
+                    addSystemMessage('⚠️ Dein Browser unterstützt die File System Access API nicht. Bitte Chrome/Edge verwenden.');
+                    return;
+                }
+                
+                const dirHandle = await window.showDirectoryPicker();
+                let filesProcessed = 0;
+                
+                for await (const entry of dirHandle.values()) {
+                    if (entry.kind === 'file') {
+                        const ext = entry.name.split('.').pop().toLowerCase();
+                        if (['txt', 'md', 'pdf'].includes(ext)) {
+                            const file = await entry.getFile();
+                            const content = await file.text();
+                            await processDocument(content, entry.name);
+                            filesProcessed++;
+                        }
+                    }
+                }
+                
+                if (filesProcessed === 0) {
+                    addSystemMessage('⚠️ Keine unterstützten Dateien gefunden (.txt, .md, .pdf)');
+                } else {
+                    addSystemMessage(`✅ ${filesProcessed} Dateien aus Ordner geladen`);
+                }
+                
+            } catch (error) {
+                if (error.name !== 'AbortError') {
+                    console.error('Fehler:', error);
+                    addSystemMessage(`❌ Fehler: ${error.message}`);
+                }
+            }
+        };
+
+        // Dokumentenliste aktualisieren
+        function updateDocumentList() {
+            if (State.documents.length === 0) {
+                UI.documentList.innerHTML = '<p class="text-slate-500">Keine Dokumente geladen</p>';
+                UI.docCount.textContent = '0';
+                return;
+            }
+            
+            UI.documentList.innerHTML = State.documents.map((doc, idx) => `
+                <div class="folder-item" onclick="viewDocument(${idx})">
+                    <span>📄</span>
+                    <span class="flex-1 truncate">${doc.filename}</span>
+                    <button onclick="event.stopPropagation(); removeDocument(${idx})" 
+                            class="text-red-400 hover:text-red-300">✕</button>
+                </div>
+            `).join('');
+            
+            UI.docCount.textContent = State.documents.length;
+        }
+
+        // RAG Stats aktualisieren
+        function updateRAGStats(stats) {
+            UI.vectorCount.textContent = stats.vectors || 0;
+            UI.chunkCount.textContent = stats.chunks || 0;
+        }
+
+        // Nachricht senden
+        window.sendMessage = async function() {
+            const message = UI.userInput.value.trim();
+            if (!message || !State.isReady || State.isGenerating) return;
+            
+            // User-Nachricht anzeigen
+            addMessage(message, 'user');
+            UI.userInput.value = '';
+            State.isGenerating = true;
+            updateStatus('loading', 'Generiere...');
+            
+            try {
+                let context = '';
+                
+                // RAG durchführen wenn aktiviert
+                if (UI.useRAG.checked && State.documents.length > 0) {
+                    const topK = parseInt(document.getElementById('top-k')?.value || '3');
+                    const resultJson = window.pySearchRAG(message, topK);
+                    const result = JSON.parse(resultJson);
+                    
+                    if (result.success && result.results.length > 0) {
+                        context = '# Relevante Informationen aus der Wissensdatenbank:\n\n';
+                        result.results.forEach((chunk, i) => {
+                            context += `[${i+1}] ${chunk.content}\n\n`;
+                        });
+                        context += '---\n\n';
+                    }
+                }
+                
+                // Prompt zusammenbauen
+                const systemPrompt = `Du bist ein hilfreicher KI-Assistent, der auf Deutsch antwortet. ${context ? 'Verwende die bereitgestellten Informationen aus der Wissensdatenbank, um präzise zu antworten.' : ''}`;
+                
+                const prompt = context + `Nutzer: ${message}\n\nAssistent:`;
+                
+                // AI-Nachricht Bubble erstellen
+                const aiMsgDiv = addMessage('', 'ai');
+                let fullResponse = '';
+                
+                // Generierung
+                if (UI.streamMode.checked) {
+                    // Streaming
+                    const stream = await State.model(prompt, {
+                        max_new_tokens: parseInt(document.getElementById('max-tokens')?.value || '512'),
+                        temperature: parseFloat(document.getElementById('temperature')?.value || '0.7'),
+                        do_sample: true,
+                        return_full_text: false
+                    });
+                    
+                    fullResponse = stream[0].generated_text;
+                    
+                    // Simuliere Streaming-Effekt
+                    const words = fullResponse.split(' ');
+                    for (let i = 0; i < words.length; i++) {
+                        aiMsgDiv.textContent = words.slice(0, i + 1).join(' ');
+                        await new Promise(resolve => setTimeout(resolve, 30));
+                        scrollToBottom();
+                    }
+                } else {
+                    // Normal
+                    const result = await State.model(prompt, {
+                        max_new_tokens: parseInt(document.getElementById('max-tokens')?.value || '512'),
+                        temperature: parseFloat(document.getElementById('temperature')?.value || '0.7'),
+                        do_sample: true,
+                        return_full_text: false
+                    });
+                    
+                    fullResponse = result[0].generated_text;
+                    aiMsgDiv.textContent = fullResponse;
+                }
+                
+                State.chatHistory.push({
+                    user: message,
+                    ai: fullResponse,
+                    timestamp: new Date().toISOString()
+                });
+                
+            } catch (error) {
+                console.error('Fehler:', error);
+                addSystemMessage(`❌ Fehler bei der Generierung: ${error.message}`);
+            } finally {
+                State.isGenerating = false;
+                updateStatus('ready', 'Bereit');
+                UI.userInput.focus();
+            }
+        };
+
+        // Nachricht hinzufügen
+        function addMessage(text, type) {
+            const div = document.createElement('div');
+            div.className = `msg-${type}`;
+            div.textContent = text;
+            UI.chatMessages.appendChild(div);
+            scrollToBottom();
+            return div;
+        }
+
+        // System-Nachricht
+        function addSystemMessage(text) {
+            const div = document.createElement('div');
+            div.className = 'msg-system';
+            div.textContent = text;
+            UI.chatMessages.appendChild(div);
+            scrollToBottom();
+        }
+
+        // Scroll nach unten
+        function scrollToBottom() {
+            UI.chatMessages.scrollTop = UI.chatMessages.scrollHeight;
+        }
+
+        // Tabs wechseln
+        window.switchTab = function(tab) {
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            document.getElementById('tab-documents').classList.toggle('hidden', tab !== 'documents');
+            document.getElementById('tab-models').classList.toggle('hidden', tab !== 'models');
+        };
+
+        // Settings Modal
+        window.closeSettings = function() {
+            document.getElementById('settings-modal').classList.add('hidden');
+        };
+
+        document.getElementById('toggle-settings').addEventListener('click', () => {
+            document.getElementById('settings-modal').classList.remove('hidden');
+        });
+
+        window.saveSettings = function() {
+            addSystemMessage('✅ Einstellungen gespeichert');
+            closeSettings();
+        };
+
+        // Event Listeners
+        UI.userInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        // Initialisierung
+        addSystemMessage('🚀 System gestartet. Bitte lade ein deutsches Modell!');
+        updateStatus('ready', 'Warte auf Modell');
+        
+        // Auto-load default model
+        setTimeout(() => {
+            loadModel();
+        }, 2000);
+
+    </script>
+
+</body>
+</html>
