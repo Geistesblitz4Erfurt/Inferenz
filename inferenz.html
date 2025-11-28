@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pixel 7 KI - Ultimate Loader</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #000; color: #fff; font-family: sans-serif; height: 100vh; display: flex; flex-direction: column; }
+        
+        /* Konsolen-Look für echtes Feedback */
+        .console {
+            background: #111;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 11px;
+            height: 150px;
+            overflow-y: auto;
+            color: #aaa;
+            margin-bottom: 10px;
+            box-shadow: inset 0 0 10px #000;
+        }
+        .log-info { color: #60a5fa; }
+        .log-success { color: #4ade80; }
+        .log-warn { color: #fbbf24; }
+        .log-error { color: #ef4444; font-weight: bold; }
+
+        /* Ladebalken Design */
+        .progress-track { background: #333; height: 16px; border-radius: 4px; overflow: hidden; position: relative; }
+        .progress-bar { background: #2563eb; height: 100%; width: 0%; transition: width 0.2s linear; }
+        .progress-text { position: absolute; width: 100%; text-align: center; font-size: 10px; line-height: 16px; color: white; text-shadow: 1px 1px 2px black; font-weight: bold; top: 0; left: 0; }
+
+        /* Chat */
+        #chat-area { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px; background: #050505; }
+        .msg { padding: 10px 14px; border-radius: 12px; max-width: 85%; font-size: 14px; }
+        .msg-user { background: #2563eb; align-self: flex-end; color: white; }
+        .msg-ai { background: #1f2937; align-self: flex-start; color: #e5e7eb; border: 1px solid #374151; }
+    </style>
+</head>
+<body>
+
+    <!-- HEADER MIT NOT-AUS -->
+    <header class="p-3 border-b border-gray-800 flex justify-between items-center bg-gray-900">
+        <h1 class="font-bold text-sm flex items-center gap-2">
+            <div id="status-led" class="w-2 h-2 rounded-full bg-red-500"></div>
+            Pixel Status
+        </h1>
+        <button id="nuke-btn" class="bg-red-900/30 border border-red-800 text-red-400 px-3 py-1 rounded text-xs hover:bg-red-900">
+            🗑️ Alles Löschen & Neustart
+        </button>
+    </header>
+
+    <!-- LOAD CONTROL PANEL -->
+    <div id="load-panel" class="p-4 bg-gray-900 border-b border-gray-800">
+        
+        <!-- Status Anzeige -->
+        <div class="flex justify-between text-xs text-gray-400 mb-1">
+            <span id="file-name">Warte auf Start...</span>
+            <span id="download-speed"></span>
+        </div>
+
+        <!-- Balken -->
+        <div class="progress-track mb-3">
+            <div id="p-bar" class="progress-bar"></div>
+            <div id="p-text" class="progress-text">0%</div>
+        </div>
+
+        <!-- Start Button -->
+        <button id="start-btn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg transition mb-3">
+            🚀 MODELL LADEN (Qwen 0.5B)
+        </button>
+
+        <!-- Debug Konsole -->
+        <div id="console-log" class="console">
+            <div>> System bereit. Drücke Start.</div>
+        </div>
+        
+        <p class="text-[10px] text-gray-500 text-center">
+            ⚠️ WICHTIG: Bildschirm anlassen! Nicht die App wechseln während des Downloads.
+        </p>
+    </div>
+
+    <!-- CHAT INTERFACE (Hidden initially) -->
+    <div id="chat-interface" class="flex-1 flex flex-col hidden h-full">
+        <div id="chat-area">
+            <div class="msg msg-ai">Hallo! Ich bin bereit. Ich laufe lokal auf deinem Handy-Prozessor.</div>
+        </div>
+        
+        <!-- RAG Input -->
+        <div class="px-3 py-2 bg-gray-900 border-t border-gray-800 flex items-center gap-2">
+            <input type="file" id="doc-upload" class="hidden" multiple>
+            <button onclick="document.getElementById('doc-upload').click()" class="text-xs bg-gray-800 text-gray-300 px-2 py-1 rounded border border-gray-700">
+                📄 +Dokument
+            </button>
+            <span id="doc-status" class="text-[10px] text-gray-500">Keine Docs</span>
+        </div>
+
+        <!-- Chat Input -->
+        <div class="p-3 bg-black border-t border-gray-800 flex gap-2">
+            <input id="user-input" type="text" placeholder="Nachricht..." class="flex-1 bg-gray-800 text-white px-4 py-3 rounded-xl border border-gray-700 outline-none">
+            <button id="send-btn" class="bg-blue-600 w-12 rounded-xl flex items-center justify-center text-white">➤</button>
+        </div>
+    </div>
+
+    <!-- Dummy Video um Bildschirm wach zu halten -->
+    <video id="wake-lock-video" loop muted playsinline width="1" height="1" class="absolute opacity-0">
+        <source src="data:video/mp4;base64,AAAAHGZ0eXBNNEVAAAAAAAEAAQAAAAAAAAAAAAAAFg==" type="video/mp4">
+    </video>
+
+    <!-- WORKER SCRIPT -->
+    <script id="worker-code" type="javascript/worker">
+        import { pipeline, env, TextStreamer } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.2';
+
+        // Pixel Optimierung
+        env.allowLocalModels = false;
+        env.useBrowserCache = true;
+        env.backends.onnx.wasm.numThreads = 4; // Stabilität
+        env.backends.onnx.wasm.simd = true;
+
+        let pipe = null;
+        let vectorStore = [];
+
+        self.onmessage = async (e) => {
+            const { cmd, data } = e.data;
+
+            if (cmd === 'start') {
+                try {
+                    self.postMessage({ type: 'log', msg: 'Verbinde mit HuggingFace CDN...', lvl: 'info' });
+                    
+                    // Wir nutzen Qwen 2.5 0.5B (ONNX Community) - Das ist am zuverlässigsten
+                    const modelId = 'onnx-community/Qwen2.5-0.5B-Instruct';
+
+                    pipe = await pipeline('text-generation', modelId, {
+                        dtype: 'q4', // Kleiner Speicher
+                        device: 'wasm', // CPU
+                        progress_callback: (p) => {
+                            self.postMessage({ type: 'progress', data: p });
+                        }
+                    });
+
+                    self.postMessage({ type: 'ready' });
+                } catch (err) {
+                    self.postMessage({ type: 'error', msg: err.message });
+                }
+            }
+
+            if (cmd === 'add_docs') {
+                // Simple Chunking
+                const words = data.text.split(/\s+/);
+                const chunkSize = 300;
+                let count = 0;
+                for(let i=0; i<words.length; i+=chunkSize) {
+                    vectorStore.push({
+                        text: words.slice(i, i+chunkSize).join(' '),
+                        source: data.name
+                    });
+                    count++;
+                }
+                self.postMessage({ type: 'log', msg: `${count} Chunks aus "${data.name}" erstellt.`, lvl: 'success' });
+            }
+
+            if (cmd === 'generate') {
+                if(!pipe) return;
+                
+                // RAG Search
+                let context = "";
+                if(vectorStore.length > 0) {
+                    const terms = data.prompt.toLowerCase().split(' ').filter(w => w.length > 3);
+                    const scored = vectorStore.map(v => {
+                        let score = 0;
+                        terms.forEach(t => { if(v.text.toLowerCase().includes(t)) score++; });
+                        return { ...v, score };
+                    }).filter(s => s.score > 0).sort((a,b) => b.score - a.score).slice(0, 3);
+                    
+                    if(scored.length) context = scored.map(s => s.text).join('\n---\n');
+                }
+
+                const messages = [
+                    { role: "system", content: "Du bist ein hilfreicher Assistent. Antworte auf Deutsch." + (context ? ` Nutze: ${context}` : "") },
+                    { role: "user", content: data.prompt }
+                ];
+
+                // Qwen Chat Template Manuell
+                const fullPrompt = `<|im_start|>system\n${messages[0].content}<|im_end|>\n<|im_start|>user\n${messages[1].content}<|im_end|>\n<|im_start|>assistant\n`;
+
+                try {
+                    const streamer = new TextStreamer(pipe.tokenizer, { skip_prompt: true, skip_special_tokens: true, callback_function: (t) => self.postMessage({ type: 'token', text: t }) });
+                    
+                    await pipe(fullPrompt, {
+                        max_new_tokens: 400,
+                        temperature: 0.6,
+                        do_sample: true,
+                        streamer: streamer
+                    });
+                    
+                    self.postMessage({ type: 'done' });
+                } catch(e) {
+                    self.postMessage({ type: 'error', msg: e.message });
+                }
+            }
+        };
+    </script>
+
+    <!-- MAIN UI SCRIPT -->
+    <script>
+        const UI = {
+            console: document.getElementById('console-log'),
+            bar: document.getElementById('p-bar'),
+            barText: document.getElementById('p-text'),
+            fileName: document.getElementById('file-name'),
+            startBtn: document.getElementById('start-btn'),
+            loadPanel: document.getElementById('load-panel'),
+            chatInterface: document.getElementById('chat-interface'),
+            chatArea: document.getElementById('chat-area'),
+            input: document.getElementById('user-input'),
+            sendBtn: document.getElementById('send-btn'),
+            statusLed: document.getElementById('status-led'),
+            video: document.getElementById('wake-lock-video'),
+            nukeBtn: document.getElementById('nuke-btn'),
+            docStatus: document.getElementById('doc-status')
+        };
+
+        const logger = (msg, lvl='info') => {
+            const div = document.createElement('div');
+            div.innerText = `> ${msg}`;
+            div.className = `log-${lvl}`;
+            UI.console.appendChild(div);
+            UI.console.scrollTop = UI.console.scrollHeight;
+        };
+
+        // Worker Setup
+        const blob = new Blob([document.getElementById('worker-code').textContent], {type: 'text/javascript'});
+        const worker = new Worker(URL.createObjectURL(blob), {type: 'module'});
+
+        let currentMsgDiv = null;
+
+        // --- BUTTONS ---
+
+        UI.startBtn.onclick = () => {
+            UI.startBtn.disabled = true;
+            UI.startBtn.innerText = "LADEN LÄUFT...";
+            logger("Starte Worker Prozess...", 'info');
+            
+            // Wake Lock Versuch (Video abspielen)
+            UI.video.play().catch(e => console.log("WakeLock Autoplay blocked (ok if clicked)"));
+            
+            worker.postMessage({ cmd: 'start' });
+        };
+
+        UI.nukeBtn.onclick = async () => {
+            if(confirm("Dies löscht alle gespeicherten Modelldaten und erzwingt einen frischen Download. Tun?")) {
+                try {
+                    const keys = await caches.keys();
+                    await Promise.all(keys.map(k => caches.delete(k)));
+                    alert("Cache gelöscht. Seite wird neu geladen.");
+                    window.location.reload();
+                } catch(e) {
+                    alert("Konnte Cache nicht löschen: " + e.message);
+                }
+            }
+        };
+
+        // --- WORKER FEEDBACK ---
+
+        worker.onmessage = (e) => {
+            const { type, data, msg, lvl, text } = e.data;
+
+            if (type === 'log') logger(msg, lvl);
+
+            if (type === 'progress') {
+                // data = { status, file, loaded, total, progress }
+                if (data.status === 'initiate') {
+                    UI.fileName.innerText = `Starte: ${data.file}`;
+                    logger(`Download beginnt: ${data.file}`, 'info');
+                } 
+                else if (data.status === 'progress') {
+                    const pct = (data.progress * 100).toFixed(1);
+                    
+                    // Größe berechnen
+                    let sizeInfo = "";
+                    if (data.total) {
+                        const loadedMB = (data.loaded / 1024 / 1024).toFixed(1);
+                        const totalMB = (data.total / 1024 / 1024).toFixed(1);
+                        sizeInfo = `${loadedMB} MB / ${totalMB} MB`;
+                        UI.fileName.innerText = `Lade ${data.file} (${sizeInfo})`;
+                    }
+
+                    UI.bar.style.width = pct + "%";
+                    UI.barText.innerText = `${pct}% ${sizeInfo ? '- ' + sizeInfo : ''}`;
+                } 
+                else if (data.status === 'done') {
+                    logger(`Datei fertig: ${data.file}`, 'success');
+                    UI.bar.style.width = "100%";
+                }
+            }
+
+            if (type === 'ready') {
+                logger("Pipeline komplett geladen!", 'success');
+                UI.statusLed.className = "w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_#4ade80]";
+                setTimeout(() => {
+                    UI.loadPanel.classList.add('hidden');
+                    UI.chatInterface.classList.remove('hidden');
+                }, 1000);
+            }
+
+            if (type === 'error') {
+                logger(`FEHLER: ${msg}`, 'error');
+                UI.startBtn.disabled = false;
+                UI.startBtn.innerText = "ERNEUT VERSUCHEN";
+                UI.startBtn.className = "w-full bg-red-600 hover:bg-red-500 text-white font-bold py-3 rounded-lg transition mb-3";
+                alert("Fehler beim Laden:\n" + msg + "\n\nTipp: Drücke oben rechts 'Alles Löschen' wenn es immer wieder passiert.");
+            }
+
+            if (type === 'token') {
+                if(currentMsgDiv) {
+                    currentMsgDiv.innerText += text;
+                    UI.chatArea.scrollTop = UI.chatArea.scrollHeight;
+                }
+            }
+            
+            if (type === 'done') {
+                UI.input.disabled = false;
+                UI.sendBtn.disabled = false;
+                UI.input.focus();
+            }
+        };
+
+        // --- CHAT ---
+
+        UI.sendBtn.onclick = () => {
+            const txt = UI.input.value.trim();
+            if(!txt) return;
+            
+            // User Msg
+            const d = document.createElement('div');
+            d.className = 'msg msg-user';
+            d.innerText = txt;
+            UI.chatArea.appendChild(d);
+            
+            UI.input.value = '';
+            UI.input.disabled = true;
+            UI.sendBtn.disabled = true;
+
+            // AI Msg
+            currentMsgDiv = document.createElement('div');
+            currentMsgDiv.className = 'msg msg-ai';
+            currentMsgDiv.innerText = "";
+            UI.chatArea.appendChild(currentMsgDiv);
+            
+            worker.postMessage({ cmd: 'generate', data: { prompt: txt } });
+        };
+
+        document.getElementById('doc-upload').onchange = async (e) => {
+            const files = e.target.files;
+            for(const f of files) {
+                const text = await f.text();
+                worker.postMessage({ cmd: 'add_docs', data: { text, name: f.name }});
+            }
+            UI.docStatus.innerText = `${files.length} Docs aktiv`;
+        };
+
+    </script>
+</body>
+</html>
