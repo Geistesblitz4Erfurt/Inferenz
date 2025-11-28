@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Deutsche KI mit RAG</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #0f172a; color: #e2e8f0; font-family: system-ui, sans-serif; }
+        .msg-user { background: #38bdf8; color: #000; align-self: flex-end; border-radius: 16px 16px 2px 16px; word-break: break-word; }
+        .msg-ai { background: #334155; color: #fff; align-self: flex-start; border-radius: 16px 16px 16px 2px; word-break: break-word; }
+        .msg-ai p { margin-bottom: 0.5rem; }
+        .msg-ai p:last-child { margin-bottom: 0; }
+        .rag-context { background: rgba(56, 189, 248, 0.1); border-left: 3px solid #38bdf8; padding: 8px; margin-bottom: 8px; font-size: 11px; color: #94a3b8; }
+    </style>
+</head>
+<body class="h-screen flex flex-col">
+
+    <!-- HEADER -->
+    <header class="bg-slate-900 border-b border-slate-800 p-3 shadow-lg">
+        <div class="flex justify-between items-center">
+            <h1 class="font-bold text-lg">🧠 Deutsche KI + RAG</h1>
+            <span id="status-badge" class="text-[10px] bg-slate-700 px-2 py-0.5 rounded">INIT</span>
+        </div>
+        <div id="progress-bar" class="hidden mt-2 h-1 bg-slate-800 rounded-full overflow-hidden">
+            <div id="progress-fill" class="h-full bg-sky-500 transition-all" style="width: 0%"></div>
+        </div>
+    </header>
+
+    <!-- SIDEBAR (Documents) -->
+    <div class="flex flex-1 overflow-hidden">
+        <!-- Document Panel (Collapsible) -->
+        <aside id="doc-panel" class="w-64 bg-slate-900 border-r border-slate-800 p-3 overflow-y-auto hidden lg:block">
+            <h3 class="font-bold text-sm mb-2">📚 Dokumente</h3>
+            <input type="file" id="file-input" accept=".txt,.md" multiple class="hidden">
+            <button onclick="document.getElementById('file-input').click()" 
+                    class="w-full bg-slate-800 hover:bg-slate-700 text-sm py-2 rounded mb-2">
+                📤 Upload
+            </button>
+            <div id="doc-list" class="text-xs space-y-1"></div>
+            <div id="doc-stats" class="text-xs text-slate-500 mt-2 pt-2 border-t border-slate-800"></div>
+        </aside>
+
+        <!-- CHAT -->
+        <main class="flex-1 flex flex-col">
+            <div id="chat-box" class="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
+                <div class="bg-slate-800/50 p-4 rounded-xl text-sm text-center max-w-md mx-auto">
+                    <p class="text-sky-400 font-bold mb-2">🚀 System startet...</p>
+                    <p class="text-slate-400 text-xs">Lade Modell für deutsche Antworten</p>
+                </div>
+            </div>
+
+            <!-- CONTROLS -->
+            <footer class="bg-slate-900 p-3 border-t border-slate-800">
+                <!-- Model Select -->
+                <div class="mb-2 flex gap-2">
+                    <select id="model-select" class="flex-1 bg-slate-800 text-xs p-2 rounded border border-slate-700">
+                        <option value="HuggingFaceTB/SmolLM2-135M-Instruct">SmolLM2 135M (Empfohlen) ⚡</option>
+                        <option value="Qwen/Qwen2.5-0.5B-Instruct">Qwen 0.5B (Besser) 🎯</option>
+                    </select>
+                    <button id="load-btn" class="bg-sky-600 text-white px-4 text-xs rounded hover:bg-sky-500">
+                        Laden
+                    </button>
+                </div>
+
+                <!-- RAG Toggle -->
+                <div class="mb-2 flex items-center gap-2 text-xs">
+                    <label class="flex items-center gap-1 cursor-pointer">
+                        <input type="checkbox" id="use-rag" checked class="rounded">
+                        <span>RAG nutzen</span>
+                    </label>
+                    <span id="rag-status" class="text-slate-500"></span>
+                </div>
+
+                <!-- Input -->
+                <div class="flex gap-2">
+                    <textarea id="user-input" rows="1" disabled placeholder="Lade Modell..." 
+                              class="flex-1 bg-slate-800 text-white rounded-lg px-3 py-3 text-sm resize-none"></textarea>
+                    <button id="send-btn" disabled class="bg-sky-500 text-black font-bold px-4 rounded-lg disabled:opacity-30">
+                        ➤
+                    </button>
+                </div>
+            </footer>
+        </main>
+    </div>
+
+    <script type="module">
+        import { pipeline, env, TextStreamer } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.2';
+
+        env.allowLocalModels = false;
+        env.useBrowserCache = true;
+
+        // ===== STATE =====
+        const State = {
+            pipeline: null,
+            messages: [],
+            documents: [],
+            chunks: [],
+            isGenerating: false
+        };
+
+        // ===== UI =====
+        const UI = {
+            chat: document.getElementById('chat-box'),
+            input: document.getElementById('user-input'),
+            sendBtn: document.getElementById('send-btn'),
+            loadBtn: document.getElementById('load-btn'),
+            modelSelect: document.getElementById('model-select'),
+            badge: document.getElementById('status-badge'),
+            progress: document.getElementById('progress-bar'),
+            progressFill: document.getElementById('progress-fill'),
+            fileInput: document.getElementById('file-input'),
+            docList: document.getElementById('doc-list'),
+            docStats: document.getElementById('doc-stats'),
+            useRAG: document.getElementById('use-rag'),
+            ragStatus: document.getElementById('rag-status')
+        };
+
+        // ===== RAG: SIMPLE TF-IDF SEARCH =====
+        function chunkText(text, chunkSize = 300) {
+            const words = text.split(/\s+/);
+            const chunks = [];
+            for (let i = 0; i < words.length; i += chunkSize) {
+                chunks.push(words.slice(i, i + chunkSize).join(' '));
+            }
+            return chunks;
+        }
+
+        function computeTFIDF(chunks) {
+            const vocabulary = new Set();
+            chunks.forEach(chunk => {
+                chunk.toLowerCase().split(/\W+/).forEach(word => {
+                    if (word.length > 2) vocabulary.add(word);
+                });
+            });
+            
+            const vocabArray = Array.from(vocabulary);
+            const tfidf = [];
+            
+            chunks.forEach(chunk => {
+                const words = chunk.toLowerCase().split(/\W+/);
+                const tf = {};
+                words.forEach(word => {
+                    if (word.length > 2) {
+                        tf[word] = (tf[word] || 0) + 1;
+                    }
+                });
+                
+                const vector = vocabArray.map(word => tf[word] || 0);
+                tfidf.push({ chunk, vector });
+            });
+            
+            return { tfidf, vocabulary: vocabArray };
+        }
+
+        function searchRAG(query, topK = 2) {
+            if (State.chunks.length === 0) return [];
+            
+            const queryWords = query.toLowerCase().split(/\W+/).filter(w => w.length > 2);
+            const scores = State.chunks.map((item, idx) => {
+                let score = 0;
+                queryWords.forEach(word => {
+                    if (item.chunk.toLowerCase().includes(word)) {
+                        score += 1;
+                    }
+                });
+                return { idx, score, chunk: item.chunk };
+            });
+            
+            scores.sort((a, b) => b.score - a.score);
+            return scores.slice(0, topK).filter(s => s.score > 0);
+        }
+
+        // ===== DOCUMENT HANDLING =====
+        UI.fileInput.addEventListener('change', async (e) => {
+            const files = e.target.files;
+            for (let file of files) {
+                const text = await file.text();
+                State.documents.push({ name: file.name, content: text });
+                
+                const chunks = chunkText(text);
+                chunks.forEach(chunk => {
+                    State.chunks.push({ chunk, source: file.name });
+                });
+            }
+            
+            updateDocUI();
+            addSystemMessage(`✅ ${files.length} Dokument(e) geladen`);
+        });
+
+        function updateDocUI() {
+            UI.docList.innerHTML = State.documents.map((doc, i) => 
+                `<div class="bg-slate-800 p-2 rounded">
+                    <div class="font-mono text-[10px]">${doc.name}</div>
+                    <button onclick="removeDoc(${i})" class="text-red-400 text-[10px] mt-1">🗑️ Löschen</button>
+                </div>`
+            ).join('');
+            
+            UI.docStats.textContent = `${State.documents.length} Docs | ${State.chunks.length} Chunks`;
+            UI.ragStatus.textContent = State.chunks.length > 0 ? `(${State.chunks.length} Chunks)` : '';
+        }
+
+        window.removeDoc = function(idx) {
+            const docName = State.documents[idx].name;
+            State.documents.splice(idx, 1);
+            State.chunks = State.chunks.filter(c => c.source !== docName);
+            updateDocUI();
+        };
+
+        // ===== MODEL LOADING =====
+        async function loadModel() {
+            const modelId = UI.modelSelect.value;
+            UI.loadBtn.disabled = true;
+            UI.badge.textContent = 'LADEN...';
+            UI.badge.className = 'text-[10px] bg-yellow-600 px-2 py-0.5 rounded';
+            UI.progress.classList.remove('hidden');
+            
+            try {
+                State.pipeline = await pipeline('text-generation', modelId, {
+                    device: 'webgpu',
+                    dtype: 'q4',
+                    progress_callback: (x) => {
+                        if (x.status === 'progress') {
+                            const percent = Math.round(x.progress * 100);
+                            UI.progressFill.style.width = `${percent}%`;
+                        }
+                    }
+                });
+
+                UI.badge.textContent = 'BEREIT ✓';
+                UI.badge.className = 'text-[10px] bg-green-600 text-white px-2 py-0.5 rounded';
+                UI.progress.classList.add('hidden');
+                UI.input.disabled = false;
+                UI.sendBtn.disabled = false;
+                UI.input.placeholder = 'Nachricht auf Deutsch eingeben...';
+                UI.input.focus();
+                
+                // Remove welcome message
+                UI.chat.innerHTML = '';
+                addSystemMessage('✅ Modell geladen! Jetzt auf Deutsch chatten.');
+                
+            } catch (e) {
+                UI.badge.textContent = 'FEHLER!';
+                UI.badge.className = 'text-[10px] bg-red-600 text-white px-2 py-0.5 rounded';
+                addSystemMessage(`❌ Fehler: ${e.message}`);
+                UI.loadBtn.disabled = false;
+            }
+        }
+
+        // ===== GERMAN PROMPT TEMPLATE =====
+        function buildGermanPrompt(userMessage, context = '') {
+            let prompt = `<|im_start|>system
+Du bist ein hilfreicher KI-Assistent. Du antwortest IMMER und AUSSCHLIESSLICH auf Deutsch.
+
+WICHTIG:
+- Antworte NUR auf Deutsch, niemals auf Englisch
+- Nutze klare, verständliche Sprache
+- Sei präzise und hilfreich`;
+
+            if (context) {
+                prompt += `\n\nHier sind relevante Informationen aus Dokumenten:\n${context}`;
+            }
+
+            prompt += `<|im_end|>
+<|im_start|>user
+${userMessage}<|im_end|>
+<|im_start|>assistant
+`;
+            
+            return prompt;
+        }
+
+        // ===== CHAT =====
+        async function sendMessage() {
+            const text = UI.input.value.trim();
+            if (!text || State.isGenerating) return;
+
+            addMessage(text, 'user');
+            UI.input.value = '';
+            State.isGenerating = true;
+            UI.input.disabled = true;
+            UI.sendBtn.disabled = true;
+
+            // RAG Search
+            let context = '';
+            let ragResults = null;
+            if (UI.useRAG.checked && State.chunks.length > 0) {
+                ragResults = searchRAG(text);
+                if (ragResults.length > 0) {
+                    context = ragResults.map((r, i) => 
+                        `[${i + 1}] ${r.chunk.substring(0, 200)}...`
+                    ).join('\n\n');
+                }
+            }
+
+            const aiDiv = addMessage('...', 'ai', ragResults);
+            let fullText = '';
+
+            try {
+                const prompt = buildGermanPrompt(text, context);
+
+                const streamer = new TextStreamer(State.pipeline.tokenizer, {
+                    skip_prompt: true,
+                    skip_special_tokens: true,
+                    callback_function: (token) => {
+                        fullText += token;
+                        aiDiv.querySelector('.ai-text').textContent = fullText;
+                        scrollToBottom();
+                    }
+                });
+
+                await State.pipeline(prompt, {
+                    max_new_tokens: 256,
+                    temperature: 0.7,
+                    do_sample: true,
+                    top_k: 20,
+                    streamer: streamer
+                });
+
+            } catch (e) {
+                aiDiv.querySelector('.ai-text').textContent = `❌ Fehler: ${e.message}`;
+            } finally {
+                State.isGenerating = false;
+                UI.input.disabled = false;
+                UI.sendBtn.disabled = false;
+                UI.input.focus();
+            }
+        }
+
+        function addMessage(text, role, ragResults = null) {
+            const div = document.createElement('div');
+            div.className = `p-3 text-sm max-w-[85%] ${role === 'user' ? 'msg-user' : 'msg-ai'}`;
+            
+            if (role === 'ai' && ragResults && ragResults.length > 0) {
+                div.innerHTML = `
+                    <div class="rag-context">
+                        📚 ${ragResults.length} relevante Stelle(n) gefunden
+                    </div>
+                    <div class="ai-text">${text}</div>
+                `;
+            } else {
+                div.innerHTML = `<div class="ai-text">${text}</div>`;
+            }
+            
+            UI.chat.appendChild(div);
+            scrollToBottom();
+            return div;
+        }
+
+        function addSystemMessage(text) {
+            const div = document.createElement('div');
+            div.className = 'bg-slate-800/50 p-2 rounded text-xs text-center text-slate-400';
+            div.textContent = text;
+            UI.chat.appendChild(div);
+            scrollToBottom();
+        }
+
+        function scrollToBottom() {
+            UI.chat.scrollTop = UI.chat.scrollHeight;
+        }
+
+        // ===== EVENTS =====
+        UI.loadBtn.addEventListener('click', loadModel);
+        UI.sendBtn.addEventListener('click', sendMessage);
+        UI.input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        // Auto-load
+        setTimeout(() => loadModel(), 500);
+
+    </script>
+</body>
+</html>
