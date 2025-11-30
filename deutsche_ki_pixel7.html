@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0f172a">
+    <title>Deutsche KI - Pixel 7</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+        
+        /* Verhindere Layout-Shifts */
+        #app {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            width: 100vw;
+        }
+        
+        /* Header - Fixed Height */
+        #header {
+            flex-shrink: 0;
+            background: #1e293b;
+            border-bottom: 1px solid #334155;
+            padding: 12px 16px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            will-change: transform;
+        }
+        
+        #status {
+            font-size: 11px;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-weight: 600;
+            white-space: nowrap;
+            transition: background-color 0.3s ease;
+        }
+        
+        .status-init { background: rgba(251, 191, 36, 0.2); color: #fbbf24; }
+        .status-loading { background: rgba(59, 130, 246, 0.2); color: #3b82f6; }
+        .status-ready { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
+        .status-error { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+        
+        /* Progress - Smooth */
+        #progress {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: rgba(59, 130, 246, 0.2);
+            overflow: hidden;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+        
+        #progress.visible {
+            opacity: 1;
+        }
+        
+        #progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #3b82f6, #60a5fa);
+            width: 0%;
+            transform: translateZ(0);
+            will-change: width;
+        }
+        
+        /* Chat - Flexible */
+        #chat {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 16px;
+            -webkit-overflow-scrolling: touch;
+            scroll-behavior: smooth;
+        }
+        
+        /* Messages */
+        .msg {
+            max-width: 85%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            margin-bottom: 12px;
+            word-wrap: break-word;
+            transform: translateZ(0);
+            will-change: transform;
+        }
+        
+        .msg-user {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+            margin-left: auto;
+            border-bottom-right-radius: 4px;
+        }
+        
+        .msg-ai {
+            background: #1e293b;
+            color: #e2e8f0;
+            margin-right: auto;
+            border-bottom-left-radius: 4px;
+        }
+        
+        .msg-system {
+            background: rgba(251, 191, 36, 0.1);
+            border: 1px solid rgba(251, 191, 36, 0.3);
+            color: #fbbf24;
+            text-align: center;
+            font-size: 13px;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 8px auto;
+            max-width: 90%;
+        }
+        
+        /* Footer - Fixed Height */
+        #footer {
+            flex-shrink: 0;
+            background: #1e293b;
+            border-top: 1px solid #334155;
+            padding: 12px;
+            height: 140px;
+        }
+        
+        select {
+            width: 100%;
+            background: #0f172a;
+            color: #e2e8f0;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+        
+        .input-row {
+            display: flex;
+            gap: 8px;
+        }
+        
+        input {
+            flex: 1;
+            background: #0f172a;
+            color: #e2e8f0;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            padding: 12px;
+            font-size: 14px;
+        }
+        
+        input::placeholder {
+            color: #64748b;
+        }
+        
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 12px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+        
+        button:active {
+            background: #2563eb;
+            transform: scale(0.98);
+        }
+        
+        button:disabled {
+            background: #334155;
+            color: #64748b;
+            cursor: not-allowed;
+        }
+        
+        .info {
+            font-size: 11px;
+            color: #64748b;
+            margin-top: 6px;
+            text-align: center;
+        }
+        
+        /* Loading Animation */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- Header -->
+        <div id="header">
+            <div style="font-weight: bold; font-size: 16px;">🧠 Deutsche KI</div>
+            <div id="status" class="status-init">Init</div>
+            <div id="progress">
+                <div id="progress-bar"></div>
+            </div>
+        </div>
+        
+        <!-- Chat -->
+        <div id="chat"></div>
+        
+        <!-- Footer -->
+        <div id="footer">
+            <select id="model">
+                <option value="onnx-community/Qwen2.5-0.5B-Instruct">Qwen 0.5B (~500MB) 🎯</option>
+                <option value="Xenova/TinyLlama-1.1B-Chat-v1.0">TinyLlama 1.1B (~550MB) ⚡</option>
+                <option value="Xenova/Phi-1_5">Phi-1.5 (~800MB) 🧠</option>
+            </select>
+            <div class="input-row">
+                <input type="text" id="input" placeholder="Modell laden..." disabled>
+                <button id="send" disabled>➤</button>
+            </div>
+            <div class="info">💾 RAG: Letzte <span id="count">0</span>/50 Nachrichten</div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.2';
+
+        // ===== CONFIG: CPU/WASM (NICHT WebGPU!) =====
+        env.allowLocalModels = false;
+        env.useBrowserCache = true;
+        env.backends.onnx.wasm.numThreads = 4; // Pixel 7 hat 8 Cores, nutze 4
+        env.backends.onnx.wasm.simd = true; // SIMD für Geschwindigkeit
+
+        // ===== STATE =====
+        const State = {
+            pipeline: null,
+            ready: false,
+            generating: false,
+            history: [],
+            maxHistory: 50,
+            model: null
+        };
+
+        // ===== UI ELEMENTS =====
+        const $ = (id) => document.getElementById(id);
+        const UI = {
+            chat: $('chat'),
+            input: $('input'),
+            send: $('send'),
+            model: $('model'),
+            status: $('status'),
+            progress: $('progress'),
+            progressBar: $('progress-bar'),
+            count: $('count')
+        };
+
+        // ===== UI HELPERS (NO JANK!) =====
+        let lastProgressUpdate = 0;
+        const PROGRESS_THROTTLE = 100; // Max 10 Updates/Sekunde
+
+        function setStatus(text, type = 'init') {
+            UI.status.textContent = text;
+            UI.status.className = `status-${type}`;
+        }
+
+        function setProgress(percent) {
+            const now = Date.now();
+            if (now - lastProgressUpdate < PROGRESS_THROTTLE && percent < 100) return;
+            lastProgressUpdate = now;
+            
+            requestAnimationFrame(() => {
+                UI.progressBar.style.width = `${percent}%`;
+                if (percent > 0 && percent < 100) {
+                    UI.progress.classList.add('visible');
+                } else {
+                    UI.progress.classList.remove('visible');
+                }
+            });
+        }
+
+        function addMessage(text, type) {
+            const div = document.createElement('div');
+            div.className = `msg msg-${type}`;
+            div.textContent = text;
+            
+            requestAnimationFrame(() => {
+                UI.chat.appendChild(div);
+                UI.chat.scrollTop = UI.chat.scrollHeight;
+            });
+            
+            return div;
+        }
+
+        // ===== TEXT CLEANING =====
+        function clean(text) {
+            return text
+                .replace(/<\|.*?\|>/g, '')
+                .replace(/###/g, '')
+                .replace(/\[INST\]|\[\/INST\]/g, '')
+                .replace(/^\d+\.\s+/gm, '')
+                .replace(/^[-*]\s+/gm, '')
+                .replace(/\s+/g, ' ')
+                .trim();
+        }
+
+        // ===== RAG =====
+        function addHistory(role, content) {
+            State.history.push({ role, content });
+            if (State.history.length > State.maxHistory) {
+                State.history.shift();
+            }
+            UI.count.textContent = State.history.length;
+        }
+
+        function buildPrompt(message) {
+            const sys = `Du bist ein hilfreicher Assistent. Antworte IMMER auf Deutsch. Keine Zahlen am Anfang. Nur klarer deutscher Text.`;
+            
+            let prompt = `<|im_start|>system\n${sys}<|im_end|>\n`;
+            
+            // Letzte 10 Nachrichten als Kontext
+            const recent = State.history.slice(-10);
+            for (const msg of recent) {
+                prompt += `<|im_start|>${msg.role}\n${msg.content}<|im_end|>\n`;
+            }
+            
+            prompt += `<|im_start|>user\n${message}<|im_end|>\n<|im_start|>assistant\n`;
+            return prompt;
+        }
+
+        // ===== MODEL LOADING =====
+        async function loadModel() {
+            const modelId = UI.model.value;
+            State.model = modelId;
+            
+            UI.model.disabled = true;
+            UI.input.disabled = true;
+            UI.send.disabled = true;
+            
+            setStatus('Lädt...', 'loading');
+            setProgress(0);
+            
+            addMessage(`🔄 Lade ${modelId.split('/')[1]}...`, 'system');
+
+            try {
+                State.pipeline = await pipeline('text-generation', modelId, {
+                    // WICHTIG: CPU/WASM, NICHT WebGPU!
+                    device: 'wasm',
+                    dtype: 'q8', // 8-bit für CPU besser als q4
+                    progress_callback: (prog) => {
+                        if (prog.status === 'progress') {
+                            const percent = Math.round(prog.progress * 100);
+                            setProgress(percent);
+                        }
+                    }
+                });
+
+                State.ready = true;
+                setProgress(100);
+                setStatus('Bereit', 'ready');
+                
+                UI.input.disabled = false;
+                UI.send.disabled = false;
+                UI.input.placeholder = 'Frage auf Deutsch...';
+                UI.input.focus();
+                
+                addMessage('✅ Modell geladen! Bereit für deutsche Antworten.', 'system');
+
+            } catch (error) {
+                console.error('❌', error);
+                setStatus('Fehler', 'error');
+                setProgress(0);
+                
+                let msg = error.message;
+                if (msg.includes('404') || msg.includes('locate')) {
+                    msg = 'Modell nicht gefunden. Versuche ein anderes.';
+                } else if (msg.includes('memory')) {
+                    msg = 'Zu wenig RAM. Andere Apps schließen.';
+                }
+                
+                addMessage(`❌ ${msg}`, 'system');
+                UI.model.disabled = false;
+            }
+        }
+
+        // ===== CHAT =====
+        async function sendMessage() {
+            const text = UI.input.value.trim();
+            if (!text || State.generating || !State.ready) return;
+
+            addMessage(text, 'user');
+            addHistory('user', text);
+            
+            UI.input.value = '';
+            UI.input.disabled = true;
+            UI.send.disabled = true;
+            State.generating = true;
+            
+            setStatus('Denkt...', 'loading');
+
+            const aiDiv = addMessage('...', 'ai');
+            let fullText = '';
+
+            try {
+                const prompt = buildPrompt(text);
+                
+                // WICHTIG: Kein Streamer für bessere CPU-Performance!
+                const result = await State.pipeline(prompt, {
+                    max_new_tokens: 200,
+                    temperature: 0.7,
+                    do_sample: true,
+                    top_k: 40,
+                    repetition_penalty: 1.1
+                });
+
+                fullText = result[0].generated_text;
+                
+                // Extrahiere nur die Antwort (nach letztem assistant)
+                const parts = fullText.split('<|im_start|>assistant');
+                if (parts.length > 1) {
+                    fullText = parts[parts.length - 1];
+                }
+                
+                fullText = clean(fullText);
+                
+                requestAnimationFrame(() => {
+                    aiDiv.textContent = fullText;
+                });
+                
+                addHistory('assistant', fullText);
+
+            } catch (error) {
+                console.error('❌', error);
+                requestAnimationFrame(() => {
+                    aiDiv.textContent = `❌ Fehler: ${error.message}`;
+                });
+            } finally {
+                State.generating = false;
+                UI.input.disabled = false;
+                UI.send.disabled = false;
+                setStatus('Bereit', 'ready');
+                UI.input.focus();
+            }
+        }
+
+        // ===== EVENTS =====
+        UI.model.addEventListener('change', loadModel);
+        UI.send.addEventListener('click', sendMessage);
+        UI.input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        // ===== INIT =====
+        addMessage('🚀 Wähle ein Modell. Standard: Qwen 0.5B (beste Balance)', 'system');
+        setStatus('Bereit', 'ready');
+        
+        // Auto-load
+        setTimeout(() => {
+            if (!State.ready) {
+                loadModel();
+            }
+        }, 1000);
+
+        // Wake Lock für Pixel 7
+        if ('wakeLock' in navigator) {
+            navigator.wakeLock.request('screen').catch(() => {});
+        }
+
+    </script>
+</body>
+</html>
