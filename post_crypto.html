@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hybrid Post-Quantum Lab & Code</title>
+    <style>
+        :root {
+            --bg-dark: #0f172a;
+            --bg-panel: #1e293b;
+            --bg-code: #0d1117;
+            --text-main: #e2e8f0;
+            --text-muted: #94a3b8;
+            
+            --col-classic: #f59e0b;
+            --col-pq: #a855f7;
+            --col-hybrid: #10b981;
+            --col-arrow: #3b82f6;
+            
+            --font-mono: 'SF Mono', 'Consolas', monospace;
+            --radius: 12px;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            padding: 1rem;
+            line-height: 1.5;
+            margin: 0;
+        }
+
+        h1 { font-size: clamp(1.5rem, 5vw, 2.5rem); text-align: center; margin-bottom: 0.5rem; }
+        h2 { border-bottom: 1px solid #334155; padding-bottom: 0.5rem; margin-top: 3rem; color: var(--text-main); }
+        p.subtitle { text-align: center; color: var(--text-muted); margin-bottom: 2rem; font-size: 0.9rem; }
+
+        /* --- LAB CONTAINER --- */
+        .lab-container {
+            max-width: 1100px;
+            margin: 0 auto;
+            border: 1px solid #334155;
+            border-radius: var(--radius);
+            background: var(--bg-panel);
+            overflow: hidden;
+            box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.5);
+        }
+
+        .lab-header {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #334155;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(0,0,0,0.2);
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        /* --- STAGE (RESPONSIVE) --- */
+        .lab-stage {
+            display: grid;
+            grid-template-columns: 1fr 150px 1fr;
+            gap: 1rem;
+            padding: 2rem;
+            min-height: 400px;
+            position: relative;
+        }
+
+        /* Actors */
+        .actor {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+            padding: 1rem;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.03);
+            border: 1px dashed #475569;
+            transition: all 0.3s;
+        }
+        .actor.active {
+            border-color: var(--col-hybrid);
+            background: rgba(16, 185, 129, 0.05);
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.1);
+        }
+        .actor-title {
+            text-align: center;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            border-bottom: 2px solid #475569;
+            padding-bottom: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Data Blocks */
+        .data-block {
+            padding: 0.8rem;
+            border-radius: 6px;
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            position: relative;
+            word-break: break-all;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.5s;
+        }
+        .data-block.visible { opacity: 1; transform: translateY(0); }
+        .classic { border-left: 3px solid var(--col-classic); background: rgba(245, 158, 11, 0.1); color: var(--col-classic); }
+        .pq { border-left: 3px solid var(--col-pq); background: rgba(168, 85, 247, 0.1); color: var(--col-pq); }
+        .hybrid { border-left: 3px solid var(--col-hybrid); background: rgba(16, 185, 129, 0.1); color: var(--col-hybrid); font-weight: bold; }
+        .label { font-size: 0.65rem; text-transform: uppercase; opacity: 0.7; display: block; margin-bottom: 3px; }
+
+        /* Arrows & Mixer */
+        .middle-stage {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2rem;
+            position: relative;
+        }
+
+        .arrow-box {
+            height: 40px;
+            width: 100%;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.5s;
+        }
+        #arrow-box-2 { transform: rotate(180deg); } 
+        #arrow-box-2 .arrow-label { transform: rotate(180deg); top: auto; bottom: -20px; }
+
+        .arrow-label {
+            position: absolute;
+            width: 200px;
+            text-align: center;
+            top: -20px;
+            font-size: 0.7rem;
+            color: var(--col-arrow);
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+
+        .arrow {
+            position: absolute;
+            left: 0;
+            width: 0%;
+            height: 2px;
+            background: var(--col-arrow);
+            transition: width 1s ease-in-out;
+        }
+        .arrow::after {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: -4px;
+            border: 5px solid transparent;
+            border-left-color: var(--col-arrow);
+            opacity: 0;
+            transition: opacity 0.3s 1s;
+        }
+        .arrow.shoot { width: 100%; }
+        .arrow.shoot::after { opacity: 1; }
+        .arrow.shoot ~ .arrow-label { opacity: 1; }
+
+        .mixer {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: #334155;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            position: relative;
+            z-index: 10;
+            box-shadow: inset 0 0 15px rgba(0,0,0,0.5);
+            transition: all 0.5s;
+        }
+        .mixer.mixing {
+            animation: pulse 1s infinite;
+            background: var(--col-hybrid);
+            color: #fff;
+            box-shadow: 0 0 30px var(--col-hybrid);
+        }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+
+        /* Controls */
+        .controls {
+            padding: 1.5rem;
+            border-top: 1px solid #334155;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.8rem;
+            justify-content: center;
+            background: rgba(0,0,0,0.2);
+        }
+        .btn {
+            background: #334155;
+            border: 1px solid #475569;
+            color: var(--text-main);
+            padding: 0.8rem 1.2rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            flex: 1 1 auto;
+            min-width: 140px;
+            transition: all 0.2s;
+        }
+        .btn:hover { background: #475569; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn.primary { background: var(--col-arrow); border-color: var(--col-arrow); color: white; }
+        .btn.finish { background: var(--col-hybrid); border-color: var(--col-hybrid); color: #0f172a; }
+
+        .log-area {
+            background: #000;
+            padding: 1rem;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            color: #33ff00;
+            height: 120px;
+            overflow-y: auto;
+            border-top: 1px solid #334155;
+        }
+
+        /* --- CODE SECTION STYLES --- */
+        .code-section { max-width: 1100px; margin: 3rem auto; }
+        
+        .tabs { display: flex; gap: 5px; margin-bottom: 0; }
+        .tab-btn {
+            background: #1e293b;
+            color: #94a3b8;
+            border: 1px solid #334155;
+            border-bottom: none;
+            padding: 10px 20px;
+            border-radius: 8px 8px 0 0;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .tab-btn.active {
+            background: #0d1117;
+            color: var(--col-arrow);
+            border-top: 2px solid var(--col-arrow);
+        }
+
+        .code-container {
+            background: var(--bg-code);
+            border: 1px solid #334155;
+            border-radius: 0 8px 8px 8px;
+            padding: 1.5rem;
+            position: relative;
+        }
+
+        .code-block { display: none; }
+        .code-block.active { display: block; }
+
+        pre { margin: 0; overflow-x: auto; font-family: var(--font-mono); color: #e2e8f0; font-size: 0.85rem; }
+        
+        /* Syntax Highlight Sim */
+        .k { color: #c678dd; } /* Keyword */
+        .s { color: #98c379; } /* String */
+        .f { color: #61afef; } /* Function */
+        .c { color: #7f848e; font-style: italic; } /* Comment */
+        .v { color: #e5c07b; } /* Variable/Class */
+
+        /* --- MOBILE TWEAKS --- */
+        @media (max-width: 850px) {
+            .lab-stage { grid-template-columns: 1fr; gap: 0; }
+            .actor { order: 1; }
+            #actor-bob { order: 3; }
+            .middle-stage { order: 2; padding: 2rem 0; height: 200px; }
+            .arrow-box { width: 120px; position: absolute; }
+            #arrow-box-1 { transform: rotate(90deg); top: 20px; }
+            #arrow-box-2 { transform: rotate(-90deg); top: auto; bottom: 20px; }
+            .arrow-label { transform: rotate(0deg); top: -25px; }
+            #arrow-box-2 .arrow-label { transform: rotate(0deg); top: -25px; bottom: auto; }
+        }
+    </style>
+</head>
+<body>
+
+    <main>
+        <h1>⚛️ Hybrid Crypto Lab</h1>
+        <p class="subtitle">
+            Klassisches ECC (X25519) + Post-Quantum (Kyber) = Unknackbar.<br>
+            Simulation oben, echter Produktions-Code unten.
+        </p>
+
+        <!-- VISUAL SIMULATION -->
+        <div class="lab-container">
+            <div class="lab-header">
+                <div style="font-weight:bold; color: var(--col-arrow);">Status: <span id="status-text" style="color:white;">Bereit</span></div>
+                <div style="font-size: 0.75rem; color: var(--text-muted); text-transform:uppercase;">Protocol: TLS 1.3 Hybrid Draft</div>
+            </div>
+
+            <div class="lab-stage">
+                <!-- ALICE -->
+                <div class="actor" id="actor-alice">
+                    <div class="actor-title">👩 Alice (Client)</div>
+                    <div id="alice-keys-classic" class="data-block classic"></div>
+                    <div id="alice-keys-pq" class="data-block pq"></div>
+                    <div id="alice-shared" class="data-block hybrid" style="margin-top: auto;"></div>
+                </div>
+
+                <!-- NETWORK -->
+                <div class="middle-stage">
+                    <div class="arrow-box" id="arrow-box-1">
+                        <div class="arrow-label">Public Keys</div>
+                        <div class="arrow" id="arrow-1"></div>
+                    </div>
+                    <div class="mixer" id="mixer">⚡</div>
+                    <div class="arrow-box" id="arrow-box-2">
+                        <div class="arrow-label">Ciphertext + PubKey</div>
+                        <div class="arrow" id="arrow-2"></div>
+                    </div>
+                </div>
+
+                <!-- BOB -->
+                <div class="actor" id="actor-bob">
+                    <div class="actor-title">👨 Bob (Server)</div>
+                    <div id="bob-calc" class="data-block classic"></div>
+                    <div id="bob-encap" class="data-block pq"></div>
+                    <div id="bob-shared" class="data-block hybrid" style="margin-top: auto;"></div>
+                </div>
+            </div>
+
+            <div class="controls">
+                <button class="btn primary" id="btn-step1" onclick="step1()">1. Keys (Alice)</button>
+                <button class="btn" id="btn-step2" onclick="step2()" disabled>2. Encapsulate (Bob)</button>
+                <button class="btn" id="btn-step3" onclick="step3()" disabled>3. Decapsulate (Alice)</button>
+                <button class="btn finish" id="btn-step4" onclick="step4()" disabled>4. Fusion (HKDF)</button>
+                <button class="btn" onclick="location.reload()" style="background:transparent; border:1px solid #475569;">Reset</button>
+            </div>
+
+            <div class="log-area" id="console-log">
+                > System initialisiert...
+                > Warte auf Start...
+            </div>
+        </div>
+
+        <!-- CODE IMPLEMENTATIONS -->
+        <div class="code-section">
+            <h2>💻 Implementation Guide</h2>
+            <p style="color:var(--text-muted);">Wähle deine Sprache für den echten Produktions-Code:</p>
+            
+            <div class="tabs">
+                <button class="tab-btn active" onclick="showCode('node')">Node.js</button>
+                <button class="tab-btn" onclick="showCode('python')">Python 3</button>
+                <button class="tab-btn" onclick="showCode('js')">Vanilla JS (Browser)</button>
+            </div>
+
+            <div class="code-container">
+                
+                <!-- NODE.JS CODE -->
+                <div id="code-node" class="code-block active">
+                    <div style="margin-bottom: 1rem; color: #94a3b8; font-size: 0.9rem;">
+                        <strong>Setup:</strong> <code>npm install pqc-kyber</code>
+                    </div>
+<pre>
+<span class="c">// hybrid_server.js</span>
+<span class="k">const</span> <span class="v">crypto</span> = <span class="f">require</span>(<span class="s">'crypto'</span>);
+<span class="k">const</span> <span class="v">kyber</span> = <span class="f">require</span>(<span class="s">'pqc-kyber'</span>);
+
+<span class="c">// Hilfsfunktion: Hybrid KDF (Fusion)</span>
+<span class="k">function</span> <span class="f">deriveHybridKey</span>(classicSecret, pqSecret) {
+    <span class="k">const</span> combined = <span class="v">Buffer</span>.concat([classicSecret, pqSecret]);
+    
+    <span class="c">// HKDF-SHA256 für finale Key-Ableitung (32 Bytes für AES-256)</span>
+    <span class="k">return</span> <span class="v">crypto</span>.hkdfSync(<span class="s">'sha256'</span>, combined, <span class="v">Buffer</span>.alloc(0), <span class="s">'Hybrid-v1'</span>, 32);
+}
+
+<span class="k">async function</span> <span class="f">runHandshake</span>() {
+    <span class="c">// --- 1. ALICE (Client) ---</span>
+    <span class="c">// Klassisch: X25519</span>
+    <span class="k">const</span> aliceX25519 = <span class="v">crypto</span>.generateKeyPairSync(<span class="s">'x25519'</span>);
+    <span class="c">// Post-Quantum: Kyber-768</span>
+    <span class="k">const</span> aliceKyber = <span class="k">await</span> <span class="v">kyber</span>.keyPair();
+
+    <span class="c">// --- 2. BOB (Server) ---</span>
+    <span class="k">const</span> bobX25519 = <span class="v">crypto</span>.generateKeyPairSync(<span class="s">'x25519'</span>);
+    
+    <span class="c">// Bob berechnet klassisches Secret (ECDH)</span>
+    <span class="k">const</span> bobClassicSecret = <span class="v">crypto</span>.diffieHellman({
+        privateKey: bobX25519.privateKey,
+        publicKey: aliceX25519.publicKey
+    });
+
+    <span class="c">// Bob berechnet PQ Secret (Encapsulate)</span>
+    <span class="k">const</span> { ciphertext, sharedSecret: bobPqSecret } = 
+        <span class="k">await</span> <span class="v">kyber</span>.encapsulate(aliceKyber.publicKey);
+
+    <span class="c">// Bob fusioniert die Keys</span>
+    <span class="k">const</span> bobFinalKey = <span class="f">deriveHybridKey</span>(bobClassicSecret, bobPqSecret);
+
+    <span class="c">// --- 3. ALICE (Empfang) ---</span>
+    <span class="k">const</span> aliceClassicSecret = <span class="v">crypto</span>.diffieHellman({
+        privateKey: aliceX25519.privateKey,
+        publicKey: bobX25519.publicKey
+    });
+
+    <span class="c">// Alice öffnet PQ Kapsel (Decapsulate)</span>
+    <span class="k">const</span> alicePqSecret = <span class="k">await</span> <span class="v">kyber</span>.decapsulate(ciphertext, aliceKyber.privateKey);
+
+    <span class="c">// Alice fusioniert die Keys</span>
+    <span class="k">const</span> aliceFinalKey = <span class="f">deriveHybridKey</span>(aliceClassicSecret, alicePqSecret);
+
+    <span class="v">console</span>.log(<span class="s">"Hybrid Key Match:"</span>, aliceFinalKey.equals(bobFinalKey)); <span class="c">// true</span>
+    <span class="v">console</span>.log(<span class="s">"Final Key (Hex):"</span>, aliceFinalKey.toString(<span class="s">'hex'</span>));
+}
+
+<span class="f">runHandshake</span>();
+</pre>
+                </div>
+
+                <!-- PYTHON CODE -->
+                <div id="code-python" class="code-block">
+                    <div style="margin-bottom: 1rem; color: #94a3b8; font-size: 0.9rem;">
+                        <strong>Setup:</strong> <code>pip install liboqs cryptography</code>
+                    </div>
+<pre>
+<span class="c"># hybrid.py</span>
+<span class="k">import</span> oqs
+<span class="k">from</span> cryptography.hazmat.primitives <span class="k">import</span> hashes
+<span class="k">from</span> cryptography.hazmat.primitives.asymmetric <span class="k">import</span> x25519
+<span class="k">from</span> cryptography.hazmat.primitives.kdf.hkdf <span class="k">import</span> HKDF
+
+<span class="k">def</span> <span class="f">derive_hybrid_key</span>(classic, pq):
+    <span class="c"># Konkatenieren & HKDF anwenden</span>
+    hkdf = HKDF(algorithm=hashes.SHA256(), length=32, salt=<span class="k">None</span>, info=b<span class="s">'Hybrid-v1'</span>)
+    <span class="k">return</span> hkdf.derive(classic + pq)
+
+<span class="k">def</span> <span class="f">run_handshake</span>():
+    <span class="c"># --- 1. ALICE ---</span>
+    <span class="c"># Klassisch X25519</span>
+    alice_priv_c = x25519.X25519PrivateKey.generate()
+    alice_pub_c = alice_priv_c.public_key()
+    <span class="c"># PQ Kyber-768</span>
+    alice_kyber = oqs.KeyEncapsulation(<span class="s">"Kyber768"</span>)
+    alice_pub_pq = alice_kyber.generate_keypair()
+
+    <span class="c"># --- 2. BOB ---</span>
+    bob_priv_c = x25519.X25519PrivateKey.generate()
+    
+    <span class="c"># Klassisches Secret</span>
+    bob_secret_c = bob_priv_c.exchange(alice_pub_c)
+    <span class="c"># PQ Secret (Encap)</span>
+    bob_kyber = oqs.KeyEncapsulation(<span class="s">"Kyber768"</span>)
+    ciphertext, bob_secret_pq = bob_kyber.encap_secret(alice_pub_pq)
+
+    <span class="c"># Bob Final Key</span>
+    bob_final = <span class="f">derive_hybrid_key</span>(bob_secret_c, bob_secret_pq)
+
+    <span class="c"># --- 3. ALICE ---</span>
+    <span class="c"># Klassisches Secret</span>
+    alice_secret_c = alice_priv_c.exchange(bob_priv_c.public_key())
+    <span class="c"># PQ Secret (Decap)</span>
+    alice_secret_pq = alice_kyber.decap_secret(ciphertext)
+
+    <span class="c"># Alice Final Key</span>
+    alice_final = <span class="f">derive_hybrid_key</span>(alice_secret_c, alice_secret_pq)
+
+    <span class="c"># Cleanup</span>
+    alice_kyber.free()
+    bob_kyber.free()
+
+    <span class="f">print</span>(f<span class="s">"Match: {alice_final == bob_final}"</span>)
+    <span class="f">print</span>(f<span class="s">"Key:   {alice_final.hex()}"</span>)
+
+<span class="k">if</span> __name__ == <span class="s">"__main__"</span>:
+    <span class="f">run_handshake</span>()
+</pre>
+                </div>
+
+                <!-- VANILLA JS CODE -->
+                <div id="code-js" class="code-block">
+                    <div style="margin-bottom: 1rem; color: #94a3b8; font-size: 0.9rem;">
+                        <strong>Usage:</strong> Speichere als <code>index.html</code>. Nutzt Web Crypto API (nativ) und Kyber via CDN.
+                    </div>
+<pre>
+&lt;<span class="k">script</span> type=<span class="s">"module"</span>&gt;
+    <span class="k">import</span> { Kyber768 } <span class="k">from</span> <span class="s">'https://cdn.jsdelivr.net/npm/crystals-kyber-js@1.1.1/+esm'</span>;
+
+    <span class="k">async function</span> <span class="f">runBrowserHandshake</span>() {
+        <span class="c">// 1. ALICE (Client)</span>
+        <span class="c">// Klassisch: Web Crypto X25519</span>
+        <span class="k">const</span> aliceClassic = <span class="k">await</span> <span class="v">window</span>.crypto.subtle.generateKey(
+            { name: <span class="s">"X25519"</span> }, <span class="k">true</span>, [<span class="s">"deriveBits"</span>]
+        );
+        <span class="c">// PQ: Kyber via WASM</span>
+        <span class="k">const</span> aliceKyber = <span class="k">new</span> <span class="v">Kyber768</span>();
+        <span class="k">const</span> [aliceKyberPub, aliceKyberPriv] = <span class="k">await</span> aliceKyber.generateKeyPair();
+
+        <span class="c">// 2. BOB (Server)</span>
+        <span class="k">const</span> bobClassic = <span class="k">await</span> <span class="v">window</span>.crypto.subtle.generateKey(
+            { name: <span class="s">"X25519"</span> }, <span class="k">true</span>, [<span class="s">"deriveBits"</span>]
+        );
+
+        <span class="c">// Bob: Classic Secret</span>
+        <span class="k">const</span> bobClassicBits = <span class="k">await</span> <span class="v">window</span>.crypto.subtle.deriveBits(
+            { name: <span class="s">"X25519"</span>, public: aliceClassic.publicKey },
+            bobClassic.privateKey, 256
+        );
+
+        <span class="c">// Bob: PQ Secret (Encap)</span>
+        <span class="k">const</span> bobKyber = <span class="k">new</span> <span class="v">Kyber768</span>();
+        <span class="k">const</span> [ciphertext, bobPqSecret] = <span class="k">await</span> bobKyber.encapsulate(aliceKyberPub);
+
+        <span class="c">// 3. ALICE: Decap</span>
+        <span class="k">const</span> alicePqSecret = <span class="k">await</span> aliceKyber.decapsulate(ciphertext, aliceKyberPriv);
+        
+        <span class="c">// 4. FUSION (Manuell Byte-Arrays mergen)</span>
+        <span class="k">const</span> combined = <span class="k">new</span> <span class="v">Uint8Array</span>(bobClassicBits.byteLength + bobPqSecret.length);
+        combined.set(<span class="k">new</span> <span class="v">Uint8Array</span>(bobClassicBits), 0);
+        combined.set(bobPqSecret, bobClassicBits.byteLength);
+
+        <span class="c">// HKDF via Web Crypto</span>
+        <span class="k">const</span> hkdfKey = <span class="k">await</span> <span class="v">crypto</span>.subtle.importKey(<span class="s">"raw"</span>, combined, <span class="s">"HKDF"</span>, <span class="k">false</span>, [<span class="s">"deriveBits"</span>]);
+        <span class="k">const</span> finalKey = <span class="k">await</span> <span class="v">crypto</span>.subtle.deriveBits(
+            { name: <span class="s">"HKDF"</span>, hash: <span class="s">"SHA-256"</span>, salt: <span class="k">new</span> <span class="v">Uint8Array</span>(), info: <span class="k">new</span> <span class="v">TextEncoder</span>().encode(<span class="s">"Hybrid"</span>) },
+            hkdfKey, 256
+        );
+
+        <span class="v">console</span>.log(<span class="s">"Final Key created"</span>);
+    }
+    <span class="f">runBrowserHandshake</span>();
+&lt;/<span class="k">script</span>&gt;
+</pre>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        // --- SIMULATION LOGIC ---
+        const logEl = document.getElementById('console-log');
+        const delay = ms => new Promise(res => setTimeout(res, ms));
+
+        let state = { alice: {}, bob: {}, pqSecret: null };
+
+        function log(msg, type='info') {
+            const row = document.createElement('div');
+            row.innerText = `> ${msg}`;
+            if(type === 'success') row.style.color = 'var(--col-hybrid)';
+            if(type === 'classic') row.style.color = 'var(--col-classic)';
+            if(type === 'pq') row.style.color = 'var(--col-pq)';
+            logEl.appendChild(row);
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        function randHex(bytes) {
+            const arr = new Uint8Array(bytes);
+            window.crypto.getRandomValues(arr);
+            return Array.from(arr).map(b => b.toString(16).padStart(2,'0')).join('');
+        }
+
+        // STEP 1
+        async function step1() {
+            document.getElementById('btn-step1').disabled = true;
+            document.getElementById('actor-alice').classList.add('active');
+            
+            log("Alice generiert X25519 (Classic)...", "classic");
+            state.alice.classicPub = randHex(16);
+            document.getElementById('alice-keys-classic').innerHTML = `<span class="label">ECC Pub</span>${state.alice.classicPub}...`;
+            document.getElementById('alice-keys-classic').classList.add('visible');
+            await delay(400);
+
+            log("Alice generiert Kyber-768 (PQ)...", "pq");
+            state.alice.pqPub = randHex(32);
+            document.getElementById('alice-keys-pq').innerHTML = `<span class="label">Kyber Pub</span>${state.alice.pqPub}...`;
+            document.getElementById('alice-keys-pq').classList.add('visible');
+
+            log("Alice sendet Public Keys...", "info");
+            document.getElementById('arrow-1').classList.add('shoot');
+            
+            await delay(1000);
+            document.getElementById('btn-step2').disabled = false;
+            document.getElementById('btn-step2').classList.add('primary');
+            document.getElementById('status-text').innerText = "Keys bei Bob";
+        }
+
+        // STEP 2
+        async function step2() {
+            document.getElementById('btn-step2').disabled = true;
+            document.getElementById('btn-step2').classList.remove('primary');
+            document.getElementById('actor-alice').classList.remove('active');
+            document.getElementById('actor-bob').classList.add('active');
+
+            log("Bob berechnet Classic Secret...", "classic");
+            state.bob.classicSecret = randHex(16);
+            document.getElementById('bob-calc').innerHTML = `<span class="label">Shared Classic</span>${state.bob.classicSecret}...`;
+            document.getElementById('bob-calc').classList.add('visible');
+            await delay(500);
+
+            log("Bob kapselt Kyber Secret (Encap)...", "pq");
+            state.pqSecret = randHex(16);
+            state.bob.ciphertext = randHex(24);
+            document.getElementById('bob-encap').innerHTML = `
+                <span class="label">PQ Secret</span><span style="filter:blur(3px)">${state.pqSecret}</span><br>
+                <span class="label">Ciphertext</span>${state.bob.ciphertext}...
+            `;
+            document.getElementById('bob-encap').classList.add('visible');
+
+            log("Bob antwortet...", "info");
+            document.getElementById('arrow-2').classList.add('shoot');
+
+            await delay(1000);
+            document.getElementById('btn-step3').disabled = false;
+            document.getElementById('btn-step3').classList.add('primary');
+            document.getElementById('status-text').innerText = "Antwort bei Alice";
+        }
+
+        // STEP 3
+        async function step3() {
+            document.getElementById('btn-step3').disabled = true;
+            document.getElementById('btn-step3').classList.remove('primary');
+            document.getElementById('actor-bob').classList.remove('active');
+            document.getElementById('actor-alice').classList.add('active');
+
+            log("Alice berechnet Classic Secret...", "classic");
+            document.getElementById('alice-keys-classic').innerHTML += `<div style="margin-top:5px; border-top:1px solid #444; padding-top:2px;">Shared: ${state.bob.classicSecret}...</div>`;
+            await delay(500);
+
+            log("Alice öffnet Ciphertext (Decap)...", "pq");
+            document.getElementById('alice-keys-pq').innerHTML += `<div style="margin-top:5px; border-top:1px solid #444; padding-top:2px;">Decap: ${state.pqSecret}...</div>`;
+
+            log("✅ Beide haben jetzt 2 Geheimnisse.", "success");
+            await delay(500);
+            document.getElementById('btn-step4').disabled = false;
+            document.getElementById('mixer').style.border = "2px solid white";
+        }
+
+        // STEP 4
+        async function step4() {
+            document.getElementById('btn-step4').disabled = true;
+            document.getElementById('mixer').classList.add('mixing');
+            document.getElementById('actor-alice').classList.add('active');
+            document.getElementById('actor-bob').classList.add('active');
+
+            log("FUSION (HKDF)...", "info");
+            await delay(1500);
+
+            const finalKey = randHex(16);
+            document.getElementById('mixer').classList.remove('mixing');
+            document.getElementById('mixer').innerHTML = "🔑";
+            document.getElementById('mixer').style.background = "var(--col-hybrid)";
+
+            const resHtml = `<span class="label" style="color:#000">HYBRID KEY</span>${finalKey}...`;
+            
+            document.getElementById('alice-shared').innerHTML = resHtml;
+            document.getElementById('alice-shared').classList.add('visible');
+            document.getElementById('bob-shared').innerHTML = resHtml;
+            document.getElementById('bob-shared').classList.add('visible');
+
+            log("🎉 Sichere, quantenfeste Verbindung steht!", "success");
+            document.getElementById('status-text').innerText = "Encrypted (Hybrid)";
+            document.getElementById('status-text').style.color = "var(--col-hybrid)";
+        }
+
+        // --- CODE TABS LOGIC ---
+        function showCode(lang) {
+            // Hide all blocks
+            document.querySelectorAll('.code-block').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            
+            // Show selected
+            document.getElementById('code-' + lang).classList.add('active');
+            event.target.classList.add('active');
+        }
+    </script>
+</body>
+</html>
