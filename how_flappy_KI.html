@@ -1,0 +1,2031 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>KI Labor - Flappy Learns to Fly</title>
+    <style>
+        :root {
+            --bg-color: #0a0a0a;
+            --green: #00ff41;
+            --blue: #00f3ff;
+            --red: #ff0055;
+            --yellow: #ffdd00;
+            --panel-bg: #1a1a1a;
+        }
+
+        * { 
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+            color: #eee;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 10px;
+        }
+
+        /* HEADER - Kompakt */
+        header {
+            text-align: center;
+            padding: 15px 10px;
+            background: linear-gradient(135deg, #000 0%, #1a1a1a 100%);
+            border-bottom: 3px solid var(--green);
+            margin-bottom: 10px;
+        }
+        
+        h1 {
+            color: var(--green);
+            font-family: monospace;
+            font-size: 1.5rem;
+            text-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+        }
+        
+        .subtitle { 
+            font-size: 0.85rem; 
+            color: #888;
+            margin-top: 5px;
+        }
+
+        /* SCORE BOARD - Sticky */
+        .score-board {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            background: var(--panel-bg);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.8);
+        }
+        
+        .stat-box {
+            text-align: center;
+            padding: 10px 5px;
+            background: #000;
+            border-radius: 6px;
+            border: 2px solid #333;
+        }
+        
+        .label { 
+            font-size: 0.65rem; 
+            color: #888; 
+            text-transform: uppercase;
+            margin-bottom: 5px;
+            display: block;
+        }
+        
+        .value { 
+            font-size: 1.4rem; 
+            font-weight: bold; 
+            color: #fff; 
+            font-family: monospace;
+        }
+        
+        .hl { 
+            color: var(--green);
+            text-shadow: 0 0 8px rgba(0, 255, 65, 0.6);
+        }
+
+        /* GAME AREA - VIEL GRÖßER mit mehr Raum! */
+        .game-wrapper {
+            position: relative;
+            background: #000;
+            border: 4px solid #333;
+            border-radius: 12px;
+            overflow: hidden;
+            height: 750px;
+            width: 100%;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            padding: 10px;
+        }
+        
+        canvas#gameCanvas { 
+            width: 100%; 
+            height: 100%; 
+            display: block;
+            cursor: pointer;
+        }
+
+        .brain-hud {
+            position: absolute;
+            top: 20px; 
+            right: 20px;
+            width: 240px;
+            height: 210px;
+            background: rgba(0, 0, 0, 0.95);
+            border: 3px solid var(--blue);
+            border-radius: 10px;
+            padding: 12px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 0 25px rgba(0, 243, 255, 0.4);
+        }
+        
+        .brain-title {
+            color: var(--blue);
+            font-family: monospace;
+            font-size: 9px;
+            text-transform: uppercase;
+            border-bottom: 1px solid #333;
+            text-align: center;
+            padding-bottom: 4px;
+            margin-bottom: 6px;
+        }
+        
+        #netCanvas { 
+            display: block;
+            margin: 0 auto;
+        }
+
+        /* CONTROLS - Kompakt */
+        .controls-panel {
+            background: var(--panel-bg);
+            border-radius: 10px;
+            padding: 15px;
+            border-left: 4px solid var(--blue);
+            margin-bottom: 15px;
+        }
+        
+        .controls-panel h3 { 
+            margin: 0 0 15px 0; 
+            color: var(--blue); 
+            font-size: 1.1rem;
+        }
+        
+        .control-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .control-group { 
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #333;
+        }
+        
+        label { 
+            font-size: 0.85rem; 
+            color: #ddd; 
+            display: flex; 
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+        
+        input[type=range] { 
+            width: 100%; 
+            cursor: pointer; 
+            accent-color: var(--green);
+        }
+        
+        input[type=text], input[type=number] {
+            width: 100%;
+            padding: 8px;
+            background: #000;
+            border: 2px solid #333;
+            border-radius: 4px;
+            color: var(--green);
+            font-family: monospace;
+            font-size: 0.85rem;
+        }
+        
+        input[type=text]:focus, input[type=number]:focus {
+            outline: none;
+            border-color: var(--green);
+        }
+        
+        .btn-row { 
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 12px;
+        }
+        
+        button {
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+            font-family: monospace;
+            transition: all 0.2s ease;
+            font-size: 0.85rem;
+        }
+        
+        .btn-start { 
+            background: linear-gradient(135deg, var(--green), #00cc33);
+            color: #000;
+        }
+        
+        .btn-start:hover, .btn-start:active { 
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 255, 65, 0.5);
+        }
+        
+        .btn-reset { 
+            background: #333;
+            color: var(--red);
+            border: 2px solid var(--red);
+        }
+        
+        .btn-reset:hover, .btn-reset:active { 
+            background: var(--red);
+            color: #fff;
+        }
+
+        /* SECTION TOGGLE */
+        .section-toggle {
+            background: var(--panel-bg);
+            border: 2px solid var(--green);
+            border-radius: 8px;
+            margin-bottom: 10px;
+            overflow: hidden;
+        }
+        
+        .toggle-header {
+            background: #222;
+            padding: 15px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+        }
+        
+        .toggle-header:active {
+            background: #2a2a2a;
+        }
+        
+        .toggle-header h3 {
+            margin: 0;
+            color: var(--green);
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .toggle-icon {
+            color: var(--green);
+            font-size: 1.2rem;
+            font-weight: bold;
+            transition: transform 0.3s ease;
+        }
+        
+        .section-toggle.active .toggle-icon {
+            transform: rotate(180deg);
+        }
+        
+        .toggle-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease;
+        }
+        
+        .section-toggle.active .toggle-content {
+            max-height: 5000px;
+        }
+        
+        .toggle-content-inner {
+            padding: 15px;
+        }
+
+        /* CONTENT STYLING */
+        .info-text {
+            color: #ccc;
+            font-size: 0.95rem;
+            line-height: 1.7;
+        }
+        
+        .info-text p { 
+            margin-bottom: 15px; 
+        }
+        
+        .info-text strong { 
+            color: #fff;
+        }
+        
+        .hl-green { 
+            color: var(--green); 
+            font-weight: bold;
+        }
+        
+        .hl-blue { 
+            color: var(--blue); 
+            font-weight: bold;
+        }
+        
+        .hl-red { 
+            color: var(--red); 
+            font-weight: bold;
+        }
+        
+        .hl-yellow { 
+            color: var(--yellow); 
+            font-weight: bold;
+        }
+
+        .info-list {
+            list-style: none;
+            padding: 0;
+            margin: 15px 0;
+        }
+        
+        .info-list li {
+            padding: 10px;
+            margin-bottom: 8px;
+            background: rgba(0, 243, 255, 0.1);
+            border-left: 3px solid var(--blue);
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+        
+        .info-list li::before {
+            content: "▸";
+            color: var(--green);
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        /* DEMO BOX */
+        .demo-box {
+            background: #000;
+            border: 2px solid var(--green);
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        
+        .demo-title {
+            color: var(--green);
+            font-family: monospace;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 6px;
+        }
+
+        /* SIMPLE TABLE */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            background: #000;
+            font-size: 0.85rem;
+        }
+        
+        th {
+            background: var(--blue);
+            color: #000;
+            padding: 10px 8px;
+            text-align: left;
+            font-family: monospace;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+        }
+        
+        td {
+            padding: 10px 8px;
+            border-bottom: 1px solid #333;
+            color: #ccc;
+        }
+        
+        tr:hover td {
+            background: rgba(0, 243, 255, 0.1);
+        }
+
+        /* CODE BOX */
+        .code-box {
+            background: #0a0a0a;
+            border: 1px solid #333;
+            border-left: 3px solid var(--green);
+            border-radius: 4px;
+            padding: 12px;
+            margin: 12px 0;
+            font-family: monospace;
+            font-size: 0.8rem;
+            color: var(--green);
+            overflow-x: auto;
+            line-height: 1.6;
+        }
+        
+        .code-comment {
+            color: #666;
+            font-style: italic;
+        }
+
+        /* KNOWLEDGE BOX */
+        .kb {
+            background: rgba(255, 221, 0, 0.1);
+            border: 2px solid var(--yellow);
+            border-radius: 8px;
+            padding: 12px;
+            margin: 12px 0;
+        }
+        
+        .kb h4 {
+            color: var(--yellow);
+            margin: 0 0 8px 0;
+            font-size: 1rem;
+        }
+        
+        .kb h4::before {
+            content: "💡 ";
+        }
+
+        /* NEURAL DEMO */
+        .neural-demo {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: 20px 10px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .neuron-layer {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            align-items: center;
+        }
+        
+        .layer-label {
+            color: var(--blue);
+            font-size: 0.75rem;
+            font-family: monospace;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+        
+        .neuron {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #444, #111);
+            border: 2px solid #555;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 0.8rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            position: relative;
+        }
+        
+        .neuron::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 2px solid var(--green);
+            opacity: 0;
+            animation: neuron-hint 3s ease-in-out infinite;
+        }
+        
+        @keyframes neuron-hint {
+            0%, 100% { transform: scale(1); opacity: 0; }
+            50% { transform: scale(1.3); opacity: 0.5; }
+        }
+        
+        .neuron:active, .neuron:hover {
+            transform: scale(1.15);
+            border-color: var(--green);
+        }
+        
+        .neuron:hover::after {
+            animation: none;
+        }
+        
+        .neuron.active {
+            background: radial-gradient(circle at 30% 30%, var(--green), #00aa22);
+            border-color: var(--green);
+            box-shadow: 0 0 20px var(--green);
+            animation: neuron-pulse 0.5s ease-out;
+        }
+        
+        @keyframes neuron-pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.3); box-shadow: 0 0 30px var(--green); }
+            100% { transform: scale(1); }
+        }
+        
+        .arrow {
+            font-size: 2rem;
+            color: var(--green);
+        }
+
+        /* PERCEPTRON DEMO */
+        .perceptron-demo {
+            background: #000;
+            border: 2px solid var(--blue);
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        
+        .perceptron-visual {
+            background: #000;
+            border: 2px solid var(--green);
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            text-align: center;
+        }
+        
+        .perceptron-canvas-wrapper {
+            background: #0a0a0a;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            display: flex;
+            justify-content: center;
+        }
+        
+        #perceptronCanvas {
+            border: 1px solid #333;
+            border-radius: 6px;
+            max-width: 100%;
+            height: auto;
+        }
+        
+        @media (max-width: 480px) {
+            #perceptronCanvas {
+                width: 100%;
+            }
+        }
+        
+        .input-slider-group {
+            margin: 12px 0;
+            padding: 10px;
+            background: rgba(0, 243, 255, 0.05);
+            border-radius: 6px;
+        }
+        
+        .input-slider-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+        
+        .result-display {
+            background: rgba(0, 255, 65, 0.1);
+            border: 2px solid var(--green);
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+            text-align: center;
+        }
+        
+        .result-display h4 {
+            color: var(--green);
+            font-size: 1rem;
+            margin: 0 0 10px 0;
+        }
+        
+        .result-value {
+            font-size: 2rem;
+            font-family: monospace;
+            color: var(--green);
+            font-weight: bold;
+        }
+
+        /* ACCORDION */
+        .accordion {
+            background: var(--panel-bg);
+            border: 1px solid #333;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            overflow: hidden;
+        }
+        
+        .accordion-header {
+            background: #222;
+            padding: 12px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+        }
+        
+        .accordion-header:active {
+            background: #2a2a2a;
+        }
+        
+        .accordion-header h4 {
+            margin: 0;
+            color: var(--blue);
+            font-size: 0.95rem;
+        }
+        
+        .accordion-icon {
+            color: var(--green);
+            font-size: 1rem;
+            font-weight: bold;
+            transition: transform 0.3s ease;
+        }
+        
+        .accordion.active .accordion-icon {
+            transform: rotate(180deg);
+        }
+        
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        
+        .accordion.active .accordion-content {
+            max-height: 2000px;
+        }
+        
+        .accordion-content-inner {
+            padding: 12px;
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            h1 { font-size: 1.2rem; }
+            .subtitle { font-size: 0.75rem; }
+            .game-wrapper { height: 600px; padding: 8px; }
+            .brain-hud { 
+                width: 200px; 
+                height: 180px;
+                top: 15px;
+                right: 15px;
+                padding: 10px;
+            }
+            #netCanvas {
+                width: 180px;
+                height: 155px;
+            }
+            .control-grid { grid-template-columns: 1fr; }
+            .score-board { gap: 5px; padding: 8px; }
+            .stat-box { padding: 8px 4px; }
+            .value { font-size: 1.2rem; }
+            .label { font-size: 0.6rem; }
+            .neural-demo { flex-direction: column; gap: 10px; }
+            .neuron { width: 35px; height: 35px; font-size: 0.7rem; }
+            th, td { padding: 8px 5px; font-size: 0.8rem; }
+        }
+
+        @media (max-width: 480px) {
+            .game-wrapper { height: 500px; padding: 5px; }
+            .brain-hud { 
+                width: 170px;
+                height: 155px;
+                padding: 8px;
+                top: 10px;
+                right: 10px;
+            }
+            #netCanvas {
+                width: 154px;
+                height: 135px;
+            }
+        }
+
+        /* LOADING */
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(0, 255, 65, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--green);
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <!-- HEADER -->
+    <header>
+        <h1>🤖 KI LABOR - FLAPPY LERNT FLIEGEN 🧠</h1>
+        <span class="subtitle">Wie Computer lernen - einfach erklärt für Kids!</span>
+    </header>
+
+    <!-- SCORE BOARD -->
+    <div class="score-board">
+        <div class="stat-box">
+            <span class="label">Generation</span>
+            <span id="genDisp" class="value hl">1</span>
+        </div>
+        <div class="stat-box">
+            <span class="label">Lebend</span>
+            <span id="aliveDisp" class="value">0</span>
+        </div>
+        <div class="stat-box">
+            <span class="label">Score</span>
+            <span id="scoreDisp" class="value">0</span>
+        </div>
+        <div class="stat-box">
+            <span class="label">Rekord</span>
+            <span id="highDisp" class="value hl">0</span>
+        </div>
+    </div>
+
+    <!-- GAME -->
+    <div class="game-wrapper" id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+        <div class="brain-hud">
+            <div class="brain-title">🧠 Gehirn Live</div>
+            <canvas id="netCanvas" width="216" height="180"></canvas>
+        </div>
+    </div>
+
+    <!-- CONTROLS -->
+    <div class="controls-panel">
+        <h3>⚙️ Einstellungen</h3>
+        
+        <div class="control-grid">
+            <div class="control-group">
+                <label>👥 Population <span id="popVal">100</span></label>
+                <input type="range" id="popInput" min="10" max="500" step="10" value="100">
+            </div>
+            
+            <div class="control-group">
+                <label>📏 Rohrabstand <span id="gapVal">160</span></label>
+                <input type="range" id="gapInput" min="100" max="250" step="10" value="160">
+            </div>
+            
+            <div class="control-group">
+                <label>⬇️ Schwerkraft <span id="gravVal">0.5</span></label>
+                <input type="range" id="gravInput" min="0.1" max="1.5" step="0.1" value="0.5">
+            </div>
+            
+            <div class="control-group">
+                <label>⚡ Speed <span id="speedVal">1x</span></label>
+                <input type="range" id="speedSlider" min="1" max="50" value="1" 
+                       oninput="document.getElementById('speedVal').innerText=this.value+'x'">
+                <small style="color: #888; display: block; margin-top: 5px; font-size: 0.75rem;">
+                    💡 Tipp: Bei Speed > 10x sind Vögel schwerer zu sehen
+                </small>
+            </div>
+        </div>
+        
+        <div class="control-group">
+            <label>🎯 Max Score (0 = kein Limit)</label>
+            <input type="number" id="maxScoreInput" value="0" min="0" placeholder="0">
+        </div>
+        
+        <div class="control-group">
+            <label>🎨 Vogel-Bild URL (optional)</label>
+            <input type="text" id="birdImageInput" 
+                   value="https://raw.githubusercontent.com/Jamancode/Python3/master/Schmierheft/Spiele/Flappybird_KI/flappyduck2.png" 
+                   placeholder="https://...">
+            <small style="color: #888; display: block; margin-top: 5px; font-size: 0.75rem;">
+                💡 Beim Laden eines neuen Bildes wird Speed automatisch auf 1x gesetzt
+            </small>
+        </div>
+        
+        <div class="btn-row">
+            <button class="btn-start" onclick="applySettings()">▶ START</button>
+            <button class="btn-reset" onclick="resetToDefault()">↺ RESET</button>
+        </div>
+    </div>
+
+    <!-- ERKLÄRUNGEN -->
+    
+    <!-- 1. REINFORCEMENT LEARNING -->
+    <div class="section-toggle">
+        <div class="toggle-header" onclick="toggleSection(this)">
+            <h3>🎮 Was ist Reinforcement Learning?</h3>
+            <span class="toggle-icon">▼</span>
+        </div>
+        <div class="toggle-content">
+            <div class="toggle-content-inner">
+                <div class="info-text">
+                    <p><strong>Reinforcement Learning</strong> = <span class="hl-green">"Lernen durch Üben"</span></p>
+                    
+                    <p>Stell dir vor, du lernst Skateboard fahren! 🛹</p>
+                    
+                    <ul class="info-list">
+                        <li>Versuch 1: Du fällst hin 😢 → Schlecht!</li>
+                        <li>Versuch 10: Du fährst 3 Meter! 😊 → Besser!</li>
+                        <li>Versuch 100: Du machst Tricks! 🤩 → Super!</li>
+                    </ul>
+
+                    <p><span class="hl-green">Genau so lernt unser Vogel!</span> Er probiert es immer wieder und wird besser.</p>
+
+                    <div class="demo-box">
+                        <div class="demo-title">📊 Die 3 Schritte beim Lernen</div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Schritt</th>
+                                    <th>Was passiert?</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>1. Ausprobieren</td>
+                                    <td>Vogel fliegt und springt</td>
+                                </tr>
+                                <tr>
+                                    <td>2. Bewerten</td>
+                                    <td>Überlebt? → GUT! Gecrasht? → SCHLECHT!</td>
+                                </tr>
+                                <tr>
+                                    <td>3. Lernen</td>
+                                    <td>Merke dir, was gut war!</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="kb">
+                        <h4>Wo wird das noch benutzt?</h4>
+                        <ul class="info-list">
+                            <li>🤖 Roboter lernen zu laufen</li>
+                            <li>🎮 Spiele-KI (Schach, Go)</li>
+                            <li>🚗 Selbstfahrende Autos</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. NEURONALE NETZE -->
+    <div class="section-toggle">
+        <div class="toggle-header" onclick="toggleSection(this)">
+            <h3>🧠 Neuronale Netze - Das Gehirn</h3>
+            <span class="toggle-icon">▼</span>
+        </div>
+        <div class="toggle-content">
+            <div class="toggle-content-inner">
+                <div class="info-text">
+                    <p><strong>Jeder Vogel hat ein künstliches Gehirn!</strong></p>
+
+                    <div class="demo-box">
+                        <div class="demo-title">⚡ Das Gehirn (klick die Kreise!)</div>
+                        <p style="color: #888; text-align: center; margin-bottom: 15px; font-size: 0.85rem;">
+                            👆 Tippe auf die Neuronen und sieh sie leuchten!
+                        </p>
+                        <div class="neural-demo">
+                            <div class="neuron-layer">
+                                <div class="layer-label">EINGABE</div>
+                                <div class="neuron" onclick="activateNeuron(this)">y</div>
+                                <div class="neuron" onclick="activateNeuron(this)">Δy</div>
+                                <div class="neuron" onclick="activateNeuron(this)">Δx</div>
+                                <div class="neuron" onclick="activateNeuron(this)">v</div>
+                            </div>
+                            
+                            <div class="arrow">→</div>
+                            
+                            <div class="neuron-layer">
+                                <div class="layer-label">VERSTECKT</div>
+                                <div class="neuron" onclick="activateNeuron(this)"></div>
+                                <div class="neuron" onclick="activateNeuron(this)"></div>
+                                <div class="neuron" onclick="activateNeuron(this)"></div>
+                                <div class="neuron" onclick="activateNeuron(this)"></div>
+                            </div>
+                            
+                            <div class="arrow">→</div>
+                            
+                            <div class="neuron-layer">
+                                <div class="layer-label">AUSGABE</div>
+                                <div class="neuron" onclick="activateNeuron(this)">?</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Schicht</th>
+                                <th>Aufgabe</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><span class="hl-green">Eingabe</span></td>
+                                <td>Infos sammeln (Position, Geschwindigkeit)</td>
+                            </tr>
+                            <tr>
+                                <td><span class="hl-blue">Versteckt</span></td>
+                                <td>Nachdenken & Rechnen</td>
+                            </tr>
+                            <tr>
+                                <td><span class="hl-yellow">Ausgabe</span></td>
+                                <td>Entscheiden: Springen oder nicht?</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="kb">
+                        <h4>Im Spiel siehst du das!</h4>
+                        <p><span class="hl-blue">Blaue Linien</span> = Wichtig!<br>
+                        <span class="hl-red">Rote Linien</span> = Unwichtig!<br>
+                        Je dicker, desto wichtiger!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. PERZEPTRON -->
+    <div class="section-toggle">
+        <div class="toggle-header" onclick="toggleSection(this)">
+            <h3>⚙️ Perzeptron - Der Baustein</h3>
+            <span class="toggle-icon">▼</span>
+        </div>
+        <div class="toggle-content">
+            <div class="toggle-content-inner">
+                <div class="info-text">
+                    <p>Ein <span class="hl-green">Perzeptron</span> ist wie ein winziger Rechner!</p>
+
+                    <div class="perceptron-demo">
+                        <p style="text-align: center; margin-bottom: 15px;">
+                            <strong>Entscheide: Rausgehen? 🏃</strong>
+                        </p>
+                        
+                        <div class="input-slider-group">
+                            <label>☀️ Sonnenschein <span id="sunVal">50</span>%</label>
+                            <input type="range" id="sunInput" min="0" max="100" value="50" 
+                                   oninput="updatePerceptron()">
+                        </div>
+                        
+                        <div class="input-slider-group">
+                            <label>🌡️ Warm genug <span id="tempVal">50</span>%</label>
+                            <input type="range" id="tempInput" min="0" max="100" value="50" 
+                                   oninput="updatePerceptron()">
+                        </div>
+                        
+                        <div class="input-slider-group">
+                            <label>🌧️ Regnet es <span id="rainVal">50</span>%</label>
+                            <input type="range" id="rainInput" min="0" max="100" value="50" 
+                                   oninput="updatePerceptron()">
+                        </div>
+                        
+                        <div class="result-display">
+                            <h4>ENTSCHEIDUNG:</h4>
+                            <div class="result-value" id="perceptronResult">?</div>
+                            <p style="color: #ccc; margin-top: 10px; font-size: 0.85rem;" id="perceptronExplain"></p>
+                        </div>
+                    </div>
+
+                    <div class="perceptron-visual">
+                        <div class="demo-title">⚡ LIVE PERZEPTRON-NETZ</div>
+                        <p style="color: #ccc; font-size: 0.85rem; margin-bottom: 10px;">
+                            Hier siehst du, wie das Perzeptron arbeitet!
+                        </p>
+                        <div class="perceptron-canvas-wrapper">
+                            <canvas id="perceptronCanvas" width="400" height="300"></canvas>
+                        </div>
+                        <p style="color: #888; font-size: 0.75rem; margin-top: 10px;">
+                            🟢 Aktive Neuronen = Stark<br>
+                            🔴 Negative Gewichte = Hemmen<br>
+                            🔵 Positive Gewichte = Fördern
+                        </p>
+                    </div>
+
+                    <p><strong>So rechnet es:</strong></p>
+                    
+                    <div class="code-box">
+Sonnenschein × 3 = Punkte<br>
+Temperatur × 2 = Punkte<br>
+Regen × (-5) = Punkte<br>
+<br>
+Alles zusammen → Entscheidung!<br>
+Viele Punkte → <span style="color: var(--green)">JA!</span><br>
+Wenig Punkte → <span style="color: var(--red)">NEIN!</span>
+                    </div>
+
+                    <div class="kb">
+                        <h4>Fun Fact!</h4>
+                        <p>Das Perzeptron ist über 65 Jahre alt! (1958)<br>
+                        Damals war es eine riesige Maschine!<br>
+                        Heute passen Millionen in dein Handy! 📱</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. EVOLUTION -->
+    <div class="section-toggle">
+        <div class="toggle-header" onclick="toggleSection(this)">
+            <h3>📚 Evolution - Wie wird er besser?</h3>
+            <span class="toggle-icon">▼</span>
+        </div>
+        <div class="toggle-content">
+            <div class="toggle-content-inner">
+                <div class="info-text">
+                    <p><strong>Die Antwort:</strong> <span class="hl-green">Evolution!</span> 🦕→🦖→🐦</p>
+
+                    <div class="accordion">
+                        <div class="accordion-header" onclick="toggleAccordion(this)">
+                            <h4>1️⃣ Alle Vögel versuchen es</h4>
+                            <span class="accordion-icon">▼</span>
+                        </div>
+                        <div class="accordion-content">
+                            <div class="accordion-content-inner">
+                                <p>Am Anfang starten 100 Vögel mit <span class="hl-blue">zufälligen Gehirnen</span>.</p>
+                                <p>Die meisten knallen sofort gegen das Rohr... <span class="hl-red">💥 BONK!</span></p>
+                                <p>Aber ein paar kommen weiter! 🎉</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion">
+                        <div class="accordion-header" onclick="toggleAccordion(this)">
+                            <h4>2️⃣ Der Beste wird Champion!</h4>
+                            <span class="accordion-icon">▼</span>
+                        </div>
+                        <div class="accordion-content">
+                            <div class="accordion-content-inner">
+                                <p>Welcher Vogel kam am weitesten?</p>
+                                <p>Er bekommt die beste <span class="hl-green">"Fitness"</span> - wie eine Note! 📝</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion">
+                        <div class="accordion-header" onclick="toggleAccordion(this)">
+                            <h4>3️⃣ Die Besten bekommen "Kinder"</h4>
+                            <span class="accordion-icon">▼</span>
+                        </div>
+                        <div class="accordion-content">
+                            <div class="accordion-content-inner">
+                                <p>Die besten Vögel <span class="hl-green">"vererben"</span> ihr Gehirn!</p>
+                                <p>Wie bei echten Tieren: Papa → Baby 👶</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion">
+                        <div class="accordion-header" onclick="toggleAccordion(this)">
+                            <h4>4️⃣ Mutation - Zufällige Änderungen!</h4>
+                            <span class="accordion-icon">▼</span>
+                        </div>
+                        <div class="accordion-content">
+                            <div class="accordion-content-inner">
+                                <p><span class="hl-yellow">Mutation</span> = Kleine zufällige Änderungen! 🎲</p>
+                                <p>Das Gehirn wird kopiert, aber mit kleinen Unterschieden!</p>
+                                <ul class="info-list">
+                                    <li>Manche werden besser! 📈</li>
+                                    <li>Manche schlechter... aber okay! 📉</li>
+                                    <li>So funktioniert Evolution! 🔄</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="kb">
+                        <h4>Beobachte es!</h4>
+                        <p>Die <strong>Generation</strong> steigt!<br>
+                        Der <strong>Rekord</strong> wird besser!<br>
+                        Nach ~50 Generationen sind sie Profis! 🏆</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. TRANSFORMERS -->
+    <div class="section-toggle">
+        <div class="toggle-header" onclick="toggleSection(this)">
+            <h3>🚀 Transformers - Die Super-KI</h3>
+            <span class="toggle-icon">▼</span>
+        </div>
+        <div class="toggle-content">
+            <div class="toggle-content-inner">
+                <div class="info-text">
+                    <p>Du kennst <strong>ChatGPT</strong>? 🤖 Das ist ein <span class="hl-blue">Transformer</span>!</p>
+
+                    <div class="demo-box">
+                        <div class="demo-title">🆚 Unser Vogel vs. ChatGPT</div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Eigenschaft</th>
+                                    <th>Vogel 🐦</th>
+                                    <th>ChatGPT 🤖</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Neuronen</td>
+                                    <td>~50</td>
+                                    <td>175 Milliarden!</td>
+                                </tr>
+                                <tr>
+                                    <td>Größe</td>
+                                    <td>🐜 Ameise</td>
+                                    <td>🐋 Blauwal</td>
+                                </tr>
+                                <tr>
+                                    <td>Kann</td>
+                                    <td>Flappy spielen</td>
+                                    <td>Texte, Code, Bilder...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <p><strong>Was ist "Attention"?</strong></p>
+                    <p>Transformers haben einen Trick: Sie verbinden Wörter die zusammengehören!</p>
+                    
+                    <div class="code-box">
+Satz: "Der Vogel fliegt, weil ER Hunger hat"<br>
+<br>
+Transformer denkt: "ER" = der "Vogel"! ✓<br>
+Das ist Attention! 👀
+                    </div>
+
+                    <p><strong>Wo werden sie benutzt?</strong></p>
+                    <ul class="info-list">
+                        <li>💬 Texte: ChatGPT, Bard</li>
+                        <li>🌍 Übersetzen: DeepL</li>
+                        <li>🎨 Bilder: DALL-E</li>
+                        <li>💻 Code: Copilot</li>
+                    </ul>
+
+                    <div class="kb">
+                        <h4>Für unser Spiel?</h4>
+                        <p>Zu kompliziert! 😄<br>
+                        Wie mit einem Ferrari zum Bäcker! 🏎️→🥐<br>
+                        Unser einfaches Netz reicht! ✅</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 6. ZUSAMMENFASSUNG -->
+    <div class="section-toggle active">
+        <div class="toggle-header" onclick="toggleSection(this)">
+            <h3>📊 Zusammenfassung - Alles auf einen Blick!</h3>
+            <span class="toggle-icon">▼</span>
+        </div>
+        <div class="toggle-content">
+            <div class="toggle-content-inner">
+                <div class="info-text">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Begriff</th>
+                                <th>Was ist das?</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><span class="hl-green">Reinforcement Learning</span></td>
+                                <td>Lernen durch Ausprobieren</td>
+                            </tr>
+                            <tr>
+                                <td><span class="hl-blue">Neuronales Netz</span></td>
+                                <td>Das "Gehirn" aus Neuronen</td>
+                            </tr>
+                            <tr>
+                                <td><span class="hl-yellow">Perzeptron</span></td>
+                                <td>Ein einzelnes Neuron</td>
+                            </tr>
+                            <tr>
+                                <td><span class="hl-green">Mutation</span></td>
+                                <td>Zufällige Änderungen</td>
+                            </tr>
+                            <tr>
+                                <td><span class="hl-blue">Fitness</span></td>
+                                <td>Wie gut ist ein Vogel?</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div style="margin-top: 20px; padding: 20px; background: rgba(0,255,65,0.1); border-radius: 8px; border: 2px solid var(--green);">
+                        <h4 style="color: var(--green); text-align: center; margin-top: 0;">🎯 Was du gelernt hast:</h4>
+                        <ul class="info-list">
+                            <li>Computer können lernen wie du!</li>
+                            <li>Ein Netz = künstliches Gehirn</li>
+                            <li>Durch Üben wird's besser!</li>
+                            <li>Es gibt einfache und komplexe KI</li>
+                            <li>Du verstehst jetzt KI! 🌟</li>
+                        </ul>
+                    </div>
+
+                    <div class="kb">
+                        <h4>Experimentiere!</h4>
+                        <p><strong>Probiere aus:</strong></p>
+                        <ul class="info-list">
+                            <li>⬆️ Mehr Schwerkraft - schwerer?</li>
+                            <li>📏 Rohrabstand ändern</li>
+                            <li>👥 Mehr Vögel - schneller?</li>
+                            <li>⚡ Speed hochdrehen!</li>
+                            <li>🎨 Eigenes Vogel-Bild!</li>
+                        </ul>
+                        <p style="text-align: center; font-size: 1.1rem; margin-top: 15px;">
+                            <strong>Nach ~50 Generationen sind sie Profis! 🏆</strong>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+// ====================================
+// SPIEL-CODE
+// ====================================
+
+const DEFAULT_POP = 100, DEFAULT_GAP = 160, DEFAULT_GRAV = 0.5;
+const DEFAULT_BIRD_URL = "https://raw.githubusercontent.com/Jamancode/Python3/master/Schmierheft/Spiele/Flappybird_KI/flappyduck2.png";
+
+let POPULATION = DEFAULT_POP, PIPE_GAP = DEFAULT_GAP, GRAVITY = DEFAULT_GRAV;
+let MAX_SCORE_LIMIT = 0;
+const JUMP_STRENGTH = -8, PIPE_SPEED = 3, PIPE_SPAWN_X = 250;
+
+let canvas = document.getElementById('gameCanvas');
+let ctx = canvas.getContext('2d');
+let netCanvas = document.getElementById('netCanvas');
+let netCtx = netCanvas.getContext('2d');
+
+let cw, ch;
+function resizeCanvas() {
+    let rect = document.getElementById('gameContainer').getBoundingClientRect();
+    cw = rect.width; 
+    ch = rect.height;
+    canvas.width = cw; 
+    canvas.height = ch;
+}
+window.addEventListener('resize', resizeCanvas);
+
+let birds = [], savedBirds = [], pipes = [];
+let generation = 1, currentScore = 0, highScore = 0, bestBird = null;
+
+// Vogel-Bild
+let birdImg = new Image();
+birdImg.crossOrigin = "anonymous";
+birdImg.src = DEFAULT_BIRD_URL;
+
+birdImg.onerror = function() {
+    console.log("Fallback Vogel-Bild");
+    const svg = `<svg width="34" height="24" xmlns="http://www.w3.org/2000/svg">
+        <ellipse cx="17" cy="12" rx="16" ry="11" fill="#ffd700"/>
+        <circle cx="12" cy="8" r="2" fill="#000"/>
+        <path d="M 25 12 L 32 10 L 32 14 Z" fill="#ff8c00"/>
+    </svg>`;
+    birdImg.src = 'data:image/svg+xml;base64,' + btoa(svg);
+};
+
+// Neuronales Netz
+class NeuralNetwork {
+    constructor(copy) {
+        this.inputNodes = 4, this.hiddenNodes = 4, this.outputNodes = 1;
+        if(copy) {
+            this.wIH = copy.wIH.map(r => r.slice());
+            this.wHO = copy.wHO.map(r => r.slice());
+        } else {
+            this.wIH = Array.from({length:4}, ()=>Array.from({length:4}, ()=>Math.random()*2-1));
+            this.wHO = Array.from({length:4}, ()=>Array.from({length:1}, ()=>Math.random()*2-1));
+        }
+        this.visInput = [0,0,0,0]; 
+        this.visHidden = [0,0,0,0]; 
+        this.visOutput = [0];
+    }
+    
+    feedForward(inputs) {
+        this.visInput = inputs.slice();
+        let hidden = [];
+        for(let i=0; i<4; i++) {
+            let sum = 0; 
+            for(let j=0; j<4; j++) sum += inputs[j] * this.wIH[j][i];
+            hidden[i] = 1/(1+Math.exp(-sum));
+        }
+        this.visHidden = hidden.slice();
+        let sum = 0; 
+        for(let i=0; i<4; i++) sum += hidden[i] * this.wHO[i][0];
+        let output = [1/(1+Math.exp(-sum))];
+        this.visOutput = output.slice();
+        return output;
+    }
+    
+    mutate() {
+        const mutationRate = 0.1, mutationAmount = 0.5;
+        for(let i=0; i<4; i++) 
+            for(let j=0; j<4; j++) 
+                if(Math.random() < mutationRate) 
+                    this.wIH[i][j] += (Math.random()*2-1)*mutationAmount;
+        for(let i=0; i<4; i++) 
+            if(Math.random() < mutationRate) 
+                this.wHO[i][0] += (Math.random()*2-1)*mutationAmount;
+    }
+}
+
+// Vogel
+class Bird {
+    constructor(brain) {
+        this.brain = brain ? new NeuralNetwork(brain) : new NeuralNetwork();
+        this.x = 150; 
+        this.y = ch/2; 
+        this.vy = 0; 
+        this.alive = true; 
+        this.fitness = 0;
+    }
+    
+    jump() { this.vy = JUMP_STRENGTH; }
+    
+    think(pipes) {
+        let closest = null, minDist = Infinity;
+        for(let p of pipes) {
+            if(p.x + p.w > this.x && p.x < minDist) { 
+                closest = p; 
+                minDist = p.x; 
+            }
+        }
+        if(!closest) return;
+        
+        let inputs = [
+            this.y / ch,
+            this.vy / 20,
+            (closest.x - this.x) / cw,
+            ((closest.top + PIPE_GAP/2) - this.y) / ch
+        ];
+        let out = this.brain.feedForward(inputs);
+        if(out[0] > 0.5) this.jump();
+    }
+    
+    update() {
+        this.vy += GRAVITY; 
+        this.y += this.vy;
+        if(this.y < 0 || this.y + 24 > ch) this.alive = false;
+        if(this.alive) this.fitness++;
+    }
+    
+    draw(isBest) {
+        // VOLLE DECKKRAFT für ALLE Vögel!
+        ctx.globalAlpha = 1.0;
+        
+        if(birdImg.complete && birdImg.naturalWidth > 0) {
+            // Add shadow for better visibility of best bird
+            if(isBest) {
+                ctx.shadowColor = "#00ff41";
+                ctx.shadowBlur = 15;
+            }
+            
+            // Draw larger bird image (42x30)
+            ctx.drawImage(birdImg, this.x, this.y, 42, 30);
+            
+            ctx.shadowBlur = 0; // Reset shadow
+        } else {
+            ctx.fillStyle = isBest ? '#ffd700' : '#fff';
+            ctx.beginPath(); 
+            ctx.arc(this.x+17, this.y+12, 12, 0, Math.PI*2); 
+            ctx.fill();
+        }
+        
+        if(isBest) {
+            ctx.strokeStyle = "#00ff41";
+            ctx.lineWidth = 3;
+            ctx.beginPath(); 
+            ctx.arc(this.x+21, this.y+15, 28, 0, Math.PI*2); 
+            ctx.stroke();
+        }
+        ctx.globalAlpha = 1.0;
+    }
+}
+
+// Rohr
+class Pipe {
+    constructor() {
+        this.x = cw;
+        this.w = 60;
+        let minPipe = 50, maxPos = ch - minPipe - PIPE_GAP;
+        this.top = Math.floor(Math.random() * (maxPos - minPipe + 1)) + minPipe;
+    }
+    
+    update() { this.x -= PIPE_SPEED; }
+    
+    draw() {
+        ctx.fillStyle = '#2ecc71'; 
+        ctx.strokeStyle = '#27ae60'; 
+        ctx.lineWidth = 3;
+        ctx.fillRect(this.x, 0, this.w, this.top); 
+        ctx.strokeRect(this.x, 0, this.w, this.top);
+        let botY = this.top + PIPE_GAP;
+        ctx.fillRect(this.x, botY, this.w, ch - botY); 
+        ctx.strokeRect(this.x, botY, this.w, ch - botY);
+    }
+    
+    hits(bird) {
+        // Adjusted hitbox for larger bird (42x30) - using slightly smaller values for fairness
+        if(bird.y < this.top || bird.y + 28 > this.top + PIPE_GAP) {
+            if(bird.x + 36 > this.x && bird.x < this.x + this.w) return true;
+        }
+        return false;
+    }
+}
+
+function initGame() {
+    resizeCanvas();
+    birds = []; 
+    savedBirds = []; 
+    pipes = []; 
+    currentScore = 0;
+    for(let i=0; i<POPULATION; i++) birds.push(new Bird());
+    pipes.push(new Pipe());
+}
+
+function nextGeneration() {
+    generation++; 
+    currentScore = 0; 
+    pipes = [new Pipe()];
+    savedBirds.sort((a,b) => b.fitness - a.fitness);
+    if(savedBirds.length > 0 && savedBirds[0].fitness > highScore) 
+        highScore = savedBirds[0].fitness;
+    
+    let newBirds = [];
+    if(savedBirds.length > 0) {
+        let champ = new Bird(savedBirds[0].brain); 
+        champ.fitness = 0; 
+        newBirds.push(champ);
+    }
+    
+    let parentCount = Math.max(1, Math.ceil(savedBirds.length * 0.2));
+    while(newBirds.length < POPULATION) {
+        let parent = savedBirds[Math.floor(Math.random() * parentCount)];
+        let child = new Bird(parent.brain); 
+        child.brain.mutate(); 
+        newBirds.push(child);
+    }
+    birds = newBirds; 
+    savedBirds = [];
+}
+
+function drawNetwork(brain) {
+    netCtx.clearRect(0, 0, netCanvas.width, netCanvas.height);
+    if(!brain) return;
+    
+    // Optimierte Positionen für 216x180 canvas
+    const layerX = [38, 108, 178]; 
+    const nodeRadius = 11;
+    
+    // Create neuron positions
+    const inPos = []; 
+    for(let i=0; i<4; i++) inPos.push({x: layerX[0], y: 38 + i * 36});
+    const hidPos = []; 
+    for(let i=0; i<4; i++) hidPos.push({x: layerX[1], y: 38 + i * 36});
+    const outPos = [{x: layerX[2], y: 92}];
+
+    // Function to draw connections - SEHR SICHTBAR!
+    const drawConn = (p1, p2, w) => {
+        let strength = Math.abs(w);
+        let color = w > 0 ? "0, 243, 255" : "255, 0, 85"; 
+        
+        // Sehr starke Sichtbarkeit!
+        let alpha = Math.min(1, strength * 1.2); 
+        if(alpha < 0.35) alpha = 0.35;
+        
+        netCtx.strokeStyle = `rgba(${color}, ${alpha})`;
+        netCtx.lineWidth = Math.max(2.5, strength * 4.5);
+        
+        netCtx.beginPath(); 
+        netCtx.moveTo(p1.x, p1.y); 
+        netCtx.lineTo(p2.x, p2.y); 
+        netCtx.stroke();
+    };
+
+    // Draw all connections first
+    for(let i=0; i<4; i++) 
+        for(let h=0; h<4; h++) 
+            drawConn(inPos[i], hidPos[h], brain.wIH[i][h]);
+    for(let h=0; h<4; h++) 
+        drawConn(hidPos[h], outPos[0], brain.wHO[h][0]);
+
+    // Function to draw neurons - BESSERE AKTIVIERUNGS-ANZEIGE!
+    const drawNodes = (pos, vals) => {
+        for(let i=0; i<pos.length; i++) {
+            let val = vals[i] || 0; 
+            
+            // Neuron circle
+            netCtx.beginPath(); 
+            netCtx.arc(pos[i].x, pos[i].y, nodeRadius, 0, Math.PI*2);
+            
+            // BESSERE Farbabstufung basierend auf Aktivierung!
+            // Niedrig (0-0.3): Dunkelgrau
+            // Mittel (0.3-0.6): Grau
+            // Hoch (0.6-1.0): Hell bis Grün!
+            
+            let fillColor;
+            if(val < 0.3) {
+                // Inaktiv - dunkelgrau
+                let brightness = Math.floor(val * 100) + 60;
+                fillColor = `rgb(${brightness}, ${brightness}, ${brightness})`;
+            } else if(val < 0.6) {
+                // Mittel aktiv - grau
+                let brightness = Math.floor(val * 150) + 80;
+                fillColor = `rgb(${brightness}, ${brightness}, ${brightness})`;
+            } else {
+                // Sehr aktiv - grün!
+                let greenIntensity = Math.floor((val - 0.6) * 637.5); // 0-255
+                let base = 150;
+                fillColor = `rgb(${base}, ${base + greenIntensity}, ${base})`;
+            }
+            
+            netCtx.fillStyle = fillColor;
+            netCtx.fill();
+            
+            // Border - NUR grün bei HOHER Aktivierung (> 0.6)!
+            if(val > 0.6) {
+                netCtx.strokeStyle = "#00ff41"; 
+                netCtx.lineWidth = 3.5;
+                netCtx.shadowColor = "#00ff41";
+                netCtx.shadowBlur = 18;
+            } else if(val > 0.3) {
+                netCtx.strokeStyle = "#888"; 
+                netCtx.lineWidth = 2.5;
+                netCtx.shadowBlur = 0;
+            } else {
+                netCtx.strokeStyle = "#555"; 
+                netCtx.lineWidth = 2;
+                netCtx.shadowBlur = 0;
+            }
+            netCtx.stroke();
+            netCtx.shadowBlur = 0;
+        }
+    };
+
+    // Draw all neurons
+    drawNodes(inPos, brain.visInput); 
+    drawNodes(hidPos, brain.visHidden); 
+    drawNodes(outPos, brain.visOutput);
+
+    // Layer labels
+    netCtx.fillStyle = "#00f3ff"; 
+    netCtx.font = "bold 11px monospace";
+    netCtx.textAlign = "center";
+    netCtx.fillText("IN", layerX[0], 20); 
+    netCtx.fillText("HID", layerX[1], 20); 
+    netCtx.fillText("OUT", layerX[2], 20);
+    
+    // Jump indicator
+    if(brain.visOutput[0] > 0.5) {
+        netCtx.fillStyle = "#00ff41"; 
+        netCtx.font = "bold 14px monospace"; 
+        netCtx.shadowColor = "#00ff41";
+        netCtx.shadowBlur = 12;
+        netCtx.fillText("JUMP!", layerX[2], 168);
+        netCtx.shadowBlur = 0;
+    }
+}
+
+function loop() {
+    let cycles = parseInt(document.getElementById('speedSlider').value);
+    for(let c=0; c<cycles; c++) {
+        if(pipes.length === 0 || cw - pipes[pipes.length-1].x > PIPE_SPAWN_X) 
+            pipes.push(new Pipe());
+        
+        for(let i=pipes.length-1; i>=0; i--) {
+            pipes[i].update(); 
+            if(pipes[i].x < -100) pipes.splice(i, 1);
+        }
+        
+        let aliveCount = 0, tempBest = null, tempMaxFit = -1;
+        for(let i=birds.length-1; i>=0; i--) {
+            let b = birds[i];
+            if(b.alive) {
+                b.think(pipes); 
+                b.update();
+                let hit = false;
+                if(!b.alive) hit = true; 
+                for(let p of pipes) 
+                    if(p.hits(b)) { 
+                        hit = true; 
+                        break; 
+                    }
+                if(hit) { 
+                    b.alive = false; 
+                    savedBirds.push(b); 
+                } else {
+                    aliveCount++;
+                    if(b.fitness > tempMaxFit) { 
+                        tempMaxFit = b.fitness; 
+                        tempBest = b; 
+                    }
+                }
+            }
+        }
+        
+        if(tempBest) bestBird = tempBest;
+        
+        if(MAX_SCORE_LIMIT > 0 && Math.floor(currentScore/10) >= MAX_SCORE_LIMIT) {
+             birds.forEach(b => { if(b.alive) savedBirds.push(b); }); 
+             aliveCount = 0;
+        }
+        
+        if(aliveCount === 0) { 
+            nextGeneration(); 
+            break; 
+        }
+        currentScore++;
+    }
+    
+    ctx.clearRect(0, 0, cw, ch);
+    for(let p of pipes) p.draw();
+    for(let b of birds) if(b.alive) b.draw(b === bestBird);
+    
+    document.getElementById('genDisp').innerText = generation;
+    document.getElementById('aliveDisp').innerText = birds.filter(b=>b.alive).length;
+    let sc = Math.floor(currentScore / 10);
+    document.getElementById('scoreDisp').innerText = sc;
+    document.getElementById('highDisp').innerText = Math.max(sc, Math.floor(highScore/10));
+    
+    if(bestBird && bestBird.alive) drawNetwork(bestBird.brain);
+    
+    requestAnimationFrame(loop);
+}
+
+document.getElementById('popInput').addEventListener('input', (e) => 
+    document.getElementById('popVal').innerText = e.target.value);
+document.getElementById('gapInput').addEventListener('input', (e) => 
+    document.getElementById('gapVal').innerText = e.target.value);
+document.getElementById('gravInput').addEventListener('input', (e) => 
+    document.getElementById('gravVal').innerText = e.target.value);
+
+function applySettings() {
+    // IMMER ZUERST Speed auf 1x setzen!
+    document.getElementById('speedSlider').value = 1;
+    document.getElementById('speedVal').innerText = "1x";
+    
+    POPULATION = parseInt(document.getElementById('popInput').value);
+    PIPE_GAP = parseInt(document.getElementById('gapInput').value);
+    GRAVITY = parseFloat(document.getElementById('gravInput').value);
+    MAX_SCORE_LIMIT = parseInt(document.getElementById('maxScoreInput').value) || 0;
+    
+    let newBirdUrl = document.getElementById('birdImageInput').value.trim();
+    if(newBirdUrl && newBirdUrl !== birdImg.src) {
+        console.log("Lade neues Vogel-Bild:", newBirdUrl);
+        birdImg.src = newBirdUrl;
+        
+        // Warte bis Bild geladen ist, dann starte neu
+        birdImg.onload = function() {
+            console.log("Bild geladen! Starte Spiel neu mit Speed 1x");
+            generation = 1; 
+            highScore = 0;
+            initGame();
+        };
+        
+        birdImg.onerror = function() {
+            console.log("Bild konnte nicht geladen werden, nutze Fallback");
+            generation = 1; 
+            highScore = 0;
+            initGame();
+        };
+    } else {
+        generation = 1; 
+        highScore = 0; 
+        initGame();
+    }
+}
+
+function resetToDefault() {
+    document.getElementById('popInput').value = DEFAULT_POP; 
+    document.getElementById('popVal').innerText = DEFAULT_POP;
+    document.getElementById('gapInput').value = DEFAULT_GAP; 
+    document.getElementById('gapVal').innerText = DEFAULT_GAP;
+    document.getElementById('gravInput').value = DEFAULT_GRAV; 
+    document.getElementById('gravVal').innerText = DEFAULT_GRAV;
+    document.getElementById('speedSlider').value = 1; 
+    document.getElementById('maxScoreInput').value = 0;
+    document.getElementById('speedVal').innerText = "1x";
+    document.getElementById('birdImageInput').value = DEFAULT_BIRD_URL;
+    applySettings();
+}
+
+// ====================================
+// INTERAKTIVE ELEMENTE
+// ====================================
+
+function activateNeuron(element) {
+    // Add active class for animation
+    element.classList.add('active');
+    
+    // Create ripple effect
+    const ripple = document.createElement('div');
+    ripple.style.position = 'absolute';
+    ripple.style.width = '40px';
+    ripple.style.height = '40px';
+    ripple.style.borderRadius = '50%';
+    ripple.style.border = '2px solid var(--green)';
+    ripple.style.pointerEvents = 'none';
+    ripple.style.animation = 'ripple-effect 0.8s ease-out';
+    
+    element.style.position = 'relative';
+    element.appendChild(ripple);
+    
+    // Add keyframe animation if not exists
+    if(!document.getElementById('ripple-animation')) {
+        const style = document.createElement('style');
+        style.id = 'ripple-animation';
+        style.textContent = `
+            @keyframes ripple-effect {
+                0% { transform: scale(1); opacity: 1; }
+                100% { transform: scale(2.5); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+    
+    // Remove ripple after animation
+    setTimeout(() => {
+        if(ripple.parentNode) {
+            ripple.remove();
+        }
+    }, 800);
+    
+    // Remove active class
+    setTimeout(() => element.classList.remove('active'), 1000);
+}
+
+// Perzeptron Canvas Setup
+let perceptronCanvas = document.getElementById('perceptronCanvas');
+let perceptronCtx = perceptronCanvas ? perceptronCanvas.getContext('2d') : null;
+
+// Scale canvas for mobile
+function scalePerceptronCanvas() {
+    if(!perceptronCanvas) return;
+    
+    const container = perceptronCanvas.parentElement;
+    const containerWidth = container.clientWidth;
+    
+    if(containerWidth < 400) {
+        const scale = containerWidth / 400;
+        perceptronCanvas.style.width = containerWidth + 'px';
+        perceptronCanvas.style.height = (300 * scale) + 'px';
+    } else {
+        perceptronCanvas.style.width = '400px';
+        perceptronCanvas.style.height = '300px';
+    }
+}
+
+// Call on load and resize
+window.addEventListener('resize', scalePerceptronCanvas);
+if(perceptronCanvas) scalePerceptronCanvas();
+
+function drawPerceptronNetwork(sunVal, tempVal, rainVal, score, decision) {
+    if(!perceptronCtx) return;
+    
+    const canvas = perceptronCanvas;
+    const ctx = perceptronCtx;
+    
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Positions
+    const inputX = 80;
+    const outputX = 320;
+    const startY = 60;
+    const spacing = 70;
+    
+    // Input values (normalized 0-1)
+    const inputs = [
+        { val: sunVal / 100, label: '☀️ Sonne', y: startY, color: '#ffdd00' },
+        { val: tempVal / 100, label: '🌡️ Warm', y: startY + spacing, color: '#ff8c00' },
+        { val: rainVal / 100, label: '🌧️ Regen', y: startY + spacing * 2, color: '#00a8ff' }
+    ];
+    
+    // Weights
+    const weights = [3, 2, -5];
+    
+    // Output
+    const outputY = startY + spacing;
+    
+    // Draw connections with weights
+    for(let i = 0; i < 3; i++) {
+        const weight = weights[i];
+        const input = inputs[i];
+        
+        // Calculate line properties
+        const isPositive = weight > 0;
+        const strength = Math.abs(weight) / 5; // Normalize to 0-1
+        const lineColor = isPositive ? '0, 243, 255' : '255, 0, 85'; // Blue for positive, red for negative
+        const lineWidth = 1 + strength * 8;
+        
+        // Draw connection line
+        ctx.strokeStyle = `rgba(${lineColor}, ${strength * 0.8})`;
+        ctx.lineWidth = lineWidth;
+        ctx.beginPath();
+        ctx.moveTo(inputX + 30, input.y);
+        ctx.lineTo(outputX - 30, outputY);
+        ctx.stroke();
+        
+        // Draw weight value
+        const midX = (inputX + outputX) / 2;
+        const midY = (input.y + outputY) / 2;
+        ctx.fillStyle = isPositive ? '#00f3ff' : '#ff0055';
+        ctx.font = 'bold 12px monospace';
+        ctx.fillText(`×${weight}`, midX - 15, midY - 5);
+        
+        // Draw calculation arrow
+        const contribution = input.val * weight;
+        ctx.fillStyle = '#888';
+        ctx.font = '10px monospace';
+        ctx.fillText(`=${Math.round(contribution)}`, midX - 10, midY + 10);
+    }
+    
+    // Draw input neurons
+    for(let i = 0; i < 3; i++) {
+        const input = inputs[i];
+        
+        // Neuron circle
+        const brightness = input.val;
+        ctx.beginPath();
+        ctx.arc(inputX, input.y, 25, 0, Math.PI * 2);
+        
+        // Fill with gradient based on activation
+        const gradient = ctx.createRadialGradient(inputX - 8, input.y - 8, 5, inputX, input.y, 25);
+        gradient.addColorStop(0, `rgba(${Math.floor(brightness * 255)}, ${Math.floor(brightness * 255)}, ${Math.floor(brightness * 255)}, 1)`);
+        gradient.addColorStop(1, `rgba(${Math.floor(brightness * 150)}, ${Math.floor(brightness * 150)}, ${Math.floor(brightness * 150)}, 1)`);
+        ctx.fillStyle = gradient;
+        ctx.fill();
+        
+        // Border
+        ctx.strokeStyle = brightness > 0.3 ? input.color : '#444';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        
+        // Glow effect for active neurons
+        if(brightness > 0.3) {
+            ctx.shadowColor = input.color;
+            ctx.shadowBlur = 15;
+            ctx.beginPath();
+            ctx.arc(inputX, input.y, 25, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+        }
+        
+        // Value text
+        ctx.fillStyle = brightness > 0.5 ? '#000' : '#fff';
+        ctx.font = 'bold 14px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(Math.round(input.val * 100), inputX, input.y + 5);
+        
+        // Label
+        ctx.fillStyle = '#ccc';
+        ctx.font = '12px sans-serif';
+        ctx.fillText(input.label, inputX, input.y + 45);
+    }
+    
+    // Draw output neuron
+    const outputActivation = decision === 'JA! 🎉' ? 1 : (decision === 'VIELLEICHT 🤔' ? 0.5 : 0);
+    
+    ctx.beginPath();
+    ctx.arc(outputX, outputY, 30, 0, Math.PI * 2);
+    
+    // Color based on decision
+    let outputColor;
+    if(decision === 'JA! 🎉') {
+        outputColor = '#00ff41';
+    } else if(decision === 'NEIN! 😔') {
+        outputColor = '#ff0055';
+    } else {
+        outputColor = '#ffdd00';
+    }
+    
+    const gradient = ctx.createRadialGradient(outputX - 10, outputY - 10, 5, outputX, outputY, 30);
+    gradient.addColorStop(0, outputColor);
+    gradient.addColorStop(1, outputColor.replace(')', ', 0.5)').replace('rgb', 'rgba'));
+    ctx.fillStyle = gradient;
+    ctx.fill();
+    
+    // Border
+    ctx.strokeStyle = outputColor;
+    ctx.lineWidth = 4;
+    ctx.stroke();
+    
+    // Glow
+    ctx.shadowColor = outputColor;
+    ctx.shadowBlur = 20;
+    ctx.beginPath();
+    ctx.arc(outputX, outputY, 30, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    
+    // Output value
+    ctx.fillStyle = '#000';
+    ctx.font = 'bold 16px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(Math.round(score), outputX, outputY + 6);
+    
+    // Label
+    ctx.fillStyle = '#ccc';
+    ctx.font = '14px sans-serif';
+    ctx.fillText('AUSGABE', outputX, outputY + 50);
+    
+    // Decision text
+    ctx.fillStyle = outputColor;
+    ctx.font = 'bold 14px sans-serif';
+    ctx.fillText(decision.split(' ')[0], outputX, outputY + 70);
+    
+    // Score display
+    ctx.fillStyle = '#00f3ff';
+    ctx.font = 'bold 16px monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText(`Score: ${Math.round(score)}`, 20, 30);
+    
+    // Network labels
+    ctx.fillStyle = '#00f3ff';
+    ctx.font = 'bold 12px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('EINGABE', inputX, 280);
+    ctx.fillText('GEWICHTE', (inputX + outputX) / 2, 280);
+    ctx.fillText('AUSGABE', outputX, 280);
+}
+
+function updatePerceptron() {
+    let sun = parseInt(document.getElementById('sunInput').value);
+    let temp = parseInt(document.getElementById('tempInput').value);
+    let rain = parseInt(document.getElementById('rainInput').value);
+    
+    document.getElementById('sunVal').innerText = sun;
+    document.getElementById('tempVal').innerText = temp;
+    document.getElementById('rainVal').innerText = rain;
+    
+    let score = (sun * 3) + (temp * 2) - (rain * 5);
+    
+    let result = document.getElementById('perceptronResult');
+    let explain = document.getElementById('perceptronExplain');
+    
+    let decision;
+    if(score > 100) {
+        decision = "JA! 🎉";
+        result.style.color = "var(--green)";
+        explain.innerText = "Score: " + score + " → Super Wetter!";
+    } else if(score > 0) {
+        decision = "VIELLEICHT 🤔";
+        result.style.color = "var(--yellow)";
+        explain.innerText = "Score: " + score + " → Geht so...";
+    } else {
+        decision = "NEIN! 😔";
+        result.style.color = "var(--red)";
+        explain.innerText = "Score: " + score + " → Lieber drinnen!";
+    }
+    
+    result.innerText = decision;
+    
+    // Draw the network visualization
+    drawPerceptronNetwork(sun, temp, rain, score, decision);
+}
+
+function toggleSection(header) {
+    const section = header.parentElement;
+    section.classList.toggle('active');
+}
+
+function toggleAccordion(header) {
+    const accordion = header.parentElement;
+    accordion.classList.toggle('active');
+}
+
+setTimeout(updatePerceptron, 100);
+
+// Initialize perceptron canvas
+if(perceptronCanvas) {
+    updatePerceptron();
+}
+
+// Initial load - IMMER mit Speed 1x starten!
+const initialLoad = () => {
+    document.getElementById('speedSlider').value = 1;
+    document.getElementById('speedVal').innerText = "1x";
+    initGame(); 
+    loop();
+};
+
+birdImg.onload = initialLoad;
+if(birdImg.complete) initialLoad();
+
+</script>
+</body>
+</html>
