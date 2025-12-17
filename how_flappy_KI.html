@@ -121,27 +121,27 @@
 
         .brain-hud {
             position: absolute;
-            top: 20px; 
-            right: 20px;
-            width: 240px;
-            height: 210px;
+            top: 15px; 
+            right: 15px;
+            width: 210px;
+            height: 195px;
             background: rgba(0, 0, 0, 0.95);
             border: 3px solid var(--blue);
-            border-radius: 10px;
-            padding: 12px;
+            border-radius: 8px;
+            padding: 8px;
             backdrop-filter: blur(10px);
-            box-shadow: 0 0 25px rgba(0, 243, 255, 0.4);
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.3);
         }
         
         .brain-title {
             color: var(--blue);
             font-family: monospace;
-            font-size: 9px;
+            font-size: 8px;
             text-transform: uppercase;
             border-bottom: 1px solid #333;
             text-align: center;
-            padding-bottom: 4px;
-            margin-bottom: 6px;
+            padding-bottom: 3px;
+            margin-bottom: 5px;
         }
         
         #netCanvas { 
@@ -369,6 +369,8 @@
             border-radius: 8px;
             padding: 15px;
             margin: 15px 0;
+            overflow: visible;
+            position: relative;
         }
         
         .demo-title {
@@ -457,6 +459,9 @@
             padding: 20px 10px;
             flex-wrap: wrap;
             gap: 15px;
+            position: relative;
+            z-index: 1;
+            overflow: visible;
         }
         
         .neuron-layer {
@@ -464,6 +469,8 @@
             flex-direction: column;
             gap: 12px;
             align-items: center;
+            position: relative;
+            z-index: 2;
         }
         
         .layer-label {
@@ -478,19 +485,20 @@
             width: 40px;
             height: 40px;
             border-radius: 50%;
-            background: radial-gradient(circle at 30% 30%, #444, #111);
-            border: 2px solid #555;
+            background: radial-gradient(circle at 30% 30%, #555, #222);
+            border: 3px solid #666;
             display: flex;
             align-items: center;
             justify-content: center;
             color: #fff;
-            font-size: 0.8rem;
+            font-size: 0.85rem;
             font-weight: bold;
             cursor: pointer;
             transition: all 0.3s ease;
             user-select: none;
             -webkit-tap-highlight-color: transparent;
             position: relative;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.5);
         }
         
         .neuron::after {
@@ -506,12 +514,13 @@
         
         @keyframes neuron-hint {
             0%, 100% { transform: scale(1); opacity: 0; }
-            50% { transform: scale(1.3); opacity: 0.5; }
+            50% { transform: scale(1.4); opacity: 0.6; }
         }
         
         .neuron:active, .neuron:hover {
             transform: scale(1.15);
             border-color: var(--green);
+            box-shadow: 0 0 15px rgba(0, 255, 65, 0.5);
         }
         
         .neuron:hover::after {
@@ -521,19 +530,28 @@
         .neuron.active {
             background: radial-gradient(circle at 30% 30%, var(--green), #00aa22);
             border-color: var(--green);
-            box-shadow: 0 0 20px var(--green);
-            animation: neuron-pulse 0.5s ease-out;
+            box-shadow: 0 0 25px var(--green);
+            animation: neuron-pulse 0.6s ease-out;
         }
         
         @keyframes neuron-pulse {
             0% { transform: scale(1); }
-            50% { transform: scale(1.3); box-shadow: 0 0 30px var(--green); }
+            50% { transform: scale(1.3); box-shadow: 0 0 35px var(--green); }
             100% { transform: scale(1); }
         }
         
         .arrow {
-            font-size: 2rem;
+            font-size: 2.5rem;
             color: var(--green);
+            font-weight: bold;
+            text-shadow: 0 0 15px var(--green);
+            user-select: none;
+            animation: arrow-pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes arrow-pulse {
+            0%, 100% { opacity: 0.7; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.1); }
         }
 
         /* PERCEPTRON DEMO */
@@ -671,16 +689,17 @@
             .subtitle { font-size: 0.75rem; }
             .game-wrapper { height: 600px; padding: 8px; }
             .brain-hud { 
-                width: 200px; 
-                height: 180px;
-                top: 15px;
-                right: 15px;
-                padding: 10px;
+                width: 180px; 
+                height: 170px;
+                top: 12px;
+                right: 12px;
+                padding: 7px;
             }
             #netCanvas {
-                width: 180px;
-                height: 155px;
+                width: 166px;
+                height: 150px;
             }
+            .brain-title { font-size: 7px; }
             .control-grid { grid-template-columns: 1fr; }
             .score-board { gap: 5px; padding: 8px; }
             .stat-box { padding: 8px 4px; }
@@ -694,16 +713,17 @@
         @media (max-width: 480px) {
             .game-wrapper { height: 500px; padding: 5px; }
             .brain-hud { 
-                width: 170px;
-                height: 155px;
-                padding: 8px;
+                width: 160px;
+                height: 150px;
+                padding: 6px;
                 top: 10px;
                 right: 10px;
             }
             #netCanvas {
-                width: 154px;
-                height: 135px;
+                width: 148px;
+                height: 132px;
             }
+            .brain-title { font-size: 7px; padding-bottom: 2px; margin-bottom: 3px; }
         }
 
         /* LOADING */
@@ -758,7 +778,7 @@
         <canvas id="gameCanvas"></canvas>
         <div class="brain-hud">
             <div class="brain-title">🧠 Gehirn Live</div>
-            <canvas id="netCanvas" width="216" height="180"></canvas>
+            <canvas id="netCanvas" width="194" height="172"></canvas>
         </div>
     </div>
 
@@ -865,10 +885,21 @@
                     <div class="kb">
                         <h4>Wo wird das noch benutzt?</h4>
                         <ul class="info-list">
-                            <li>🤖 Roboter lernen zu laufen</li>
-                            <li>🎮 Spiele-KI (Schach, Go)</li>
-                            <li>🚗 Selbstfahrende Autos</li>
+                            <li>🤖 Roboter lernen zu laufen (wie Babys!)</li>
+                            <li>🎮 Spiele-KI (Schach, Go) - schlägt Weltmeister!</li>
+                            <li>🚗 Selbstfahrende Autos - üben in Simulationen!</li>
+                            <li>🦾 Roboter-Arme greifen Gegenstände</li>
                         </ul>
+                    </div>
+                    
+                    <div class="kb">
+                        <h4>Coole Facts!</h4>
+                        <p style="font-size: 0.85rem; color: #ccc; line-height: 1.6;">
+                            🎯 AlphaGo (Google KI) lernte Go spielen und schlug 2016 den Weltmeister!<br>
+                            🎮 OpenAI trainierte eine KI, die Dota 2 spielt - brauchte <span class="hl-yellow">10.000 Jahre Spielzeit!</span><br>
+                            🐕 Auch Hunde lernen mit Belohnung (Leckerlis) - genau wie RL!<br>
+                            📈 Unser Vogel wird nach ~50 Generationen zum Profi!
+                        </p>
                     </div>
                 </div>
             </div>
@@ -886,36 +917,89 @@
                 <div class="info-text">
                     <p><strong>Jeder Vogel hat ein künstliches Gehirn!</strong></p>
 
-                    <div class="demo-box">
-                        <div class="demo-title">⚡ Das Gehirn (klick die Kreise!)</div>
-                        <p style="color: #888; text-align: center; margin-bottom: 15px; font-size: 0.85rem;">
-                            👆 Tippe auf die Neuronen und sieh sie leuchten!
+                    <div class="demo-box" style="border: 3px solid var(--green); background: rgba(0, 255, 65, 0.05);">
+                        <div class="demo-title" style="font-size: 1rem; color: var(--green);">⚡ DAS GEHIRN (KLICK DIE KREISE!)</div>
+                        <p style="color: #00ff41; text-align: center; margin-bottom: 5px; font-size: 0.95rem; font-weight: bold;">
+                            👆 TIPP: Klick auf die EINGABE-Neuronen (y, Δy, Δx, v)
                         </p>
-                        <div class="neural-demo">
+                        <p style="color: #ccc; text-align: center; margin-bottom: 15px; font-size: 0.85rem;">
+                            Dann siehst du den <strong style="color: var(--green);">KOMPLETTEN WEG</strong> durch das Gehirn:<br>
+                            Input → Hidden → Output → Entscheidung! 🧠✨
+                        </p>
+                        <div class="neural-demo" style="padding: 20px 10px; background: rgba(0,0,0,0.3); border-radius: 8px;">
                             <div class="neuron-layer">
-                                <div class="layer-label">EINGABE</div>
-                                <div class="neuron" onclick="activateNeuron(this)">y</div>
-                                <div class="neuron" onclick="activateNeuron(this)">Δy</div>
-                                <div class="neuron" onclick="activateNeuron(this)">Δx</div>
-                                <div class="neuron" onclick="activateNeuron(this)">v</div>
+                                <div class="layer-label" style="color: var(--blue); font-weight: bold;">EINGABE</div>
+                                <div class="neuron" onclick="activateNeuron(this)" title="Position vom Vogel - Klick mich!">y</div>
+                                <div class="neuron" onclick="activateNeuron(this)" title="Wie schnell fällt er? - Klick mich!">Δy</div>
+                                <div class="neuron" onclick="activateNeuron(this)" title="Abstand zum Rohr - Klick mich!">Δx</div>
+                                <div class="neuron" onclick="activateNeuron(this)" title="Geschwindigkeit - Klick mich!">v</div>
                             </div>
                             
-                            <div class="arrow">→</div>
+                            <div class="arrow" style="color: var(--green); font-size: 2.5rem; text-shadow: 0 0 10px var(--green);">→</div>
                             
                             <div class="neuron-layer">
-                                <div class="layer-label">VERSTECKT</div>
-                                <div class="neuron" onclick="activateNeuron(this)"></div>
-                                <div class="neuron" onclick="activateNeuron(this)"></div>
-                                <div class="neuron" onclick="activateNeuron(this)"></div>
-                                <div class="neuron" onclick="activateNeuron(this)"></div>
+                                <div class="layer-label" style="color: var(--blue); font-weight: bold;">VERSTECKT</div>
+                                <div class="neuron" onclick="activateNeuron(this)" title="Rechnet und denkt nach">🧮</div>
+                                <div class="neuron" onclick="activateNeuron(this)" title="Kombiniert Infos">🔗</div>
+                                <div class="neuron" onclick="activateNeuron(this)" title="Findet Muster">🎯</div>
+                                <div class="neuron" onclick="activateNeuron(this)" title="Macht Entscheidung">💭</div>
                             </div>
                             
-                            <div class="arrow">→</div>
+                            <div class="arrow" style="color: var(--green); font-size: 2.5rem; text-shadow: 0 0 10px var(--green);">→</div>
                             
                             <div class="neuron-layer">
-                                <div class="layer-label">AUSGABE</div>
-                                <div class="neuron" onclick="activateNeuron(this)">?</div>
+                                <div class="layer-label" style="color: var(--blue); font-weight: bold;">AUSGABE</div>
+                                <div class="neuron" onclick="activateNeuron(this)" title="Zeigt die Entscheidung!" style="width: 50px; height: 50px; font-size: 1.3rem;">?</div>
                             </div>
+                        </div>
+                        
+                        <div style="margin-top: 15px; padding: 12px; background: rgba(0, 243, 255, 0.1); border-radius: 8px; border-left: 3px solid var(--blue);">
+                            <p style="color: var(--blue); font-weight: bold; margin-bottom: 8px; font-size: 0.9rem;">
+                                💡 So funktioniert ein echtes neuronales Netz:
+                            </p>
+                            <ul style="list-style: none; padding: 0; color: #ccc; font-size: 0.85rem; line-height: 1.9;">
+                                <li style="margin-bottom: 8px;"><strong style="color: var(--green);">SCHRITT 1:</strong> Klick EINGABE → 🟢 Signal fliegt zu ALLEN Hidden (parallel!)</li>
+                                <li style="margin-bottom: 8px;"><strong style="color: var(--green);">SCHRITT 2:</strong> ALLE Hidden empfangen → 💭 aktivieren GLEICHZEITIG!</li>
+                                <li style="margin-bottom: 8px;"><strong style="color: var(--green);">SCHRITT 3:</strong> ALLE Hidden senden zu Output → 📊 Output wartet!</li>
+                                <li style="margin-bottom: 8px;"><strong style="color: var(--green);">SCHRITT 4:</strong> Output sammelt ALLE Signale → 🔄 berechnet!</li>
+                                <li style="margin-bottom: 8px;"><strong style="color: var(--green);">SCHRITT 5:</strong> Zeigt Aktivierung (0.73) → ✅ SPRING! oder ⛔ WARTE!</li>
+                            </ul>
+                            <div style="margin-top: 10px; padding: 8px; background: rgba(0,255,65,0.15); border-radius: 4px; border-left: 2px solid var(--green);">
+                                <strong style="color: var(--green);">🎯 TRY IT!</strong> Klick ein EINGABE-Neuron und sieh den ganzen Weg!<br>
+                                <span style="font-size: 0.75rem; opacity: 0.9;">Achte auf: Parallel-Aktivierung + Spinner + Aktivierungswert!</span>
+                            </div>
+                        </div>
+                        
+                        <div style="margin-top: 12px; padding: 12px; background: rgba(255, 215, 0, 0.1); border-radius: 8px; border-left: 3px solid var(--yellow);">
+                            <p style="color: var(--yellow); font-weight: bold; margin-bottom: 8px; font-size: 0.85rem;">
+                                🔬 Wie ein echtes Gehirn arbeitet:
+                            </p>
+                            <p style="color: #ccc; font-size: 0.8rem; line-height: 1.6;">
+                                <strong>1. Sinne (Input):</strong> Du siehst einen Ball → Augen senden Signal<br>
+                                <strong>2. Gehirn (Hidden):</strong> ALLE Neuronen verarbeiten PARALLEL: "Ball fliegt zu mir!"<br>
+                                <strong>3. Sammeln (Output):</strong> Output wartet bis ALLE Infos da sind<br>
+                                <strong>4. Berechnen:</strong> Kombiniert alle Inputs → entscheidet!<br>
+                                <strong>5. Entscheidung:</strong> "Fang ihn!" → Hand bewegt sich!<br>
+                                <span style="color: var(--green); margin-top: 5px; display: block;">⚡ Dein Gehirn macht das in 0,2 Sekunden - so schnell bist du!</span>
+                            </p>
+                        </div>
+                        
+                        <div style="margin-top: 12px; padding: 10px; background: rgba(255,0,85,0.1); border-radius: 8px; border-left: 3px solid var(--red);">
+                            <p style="color: #ccc; font-size: 0.75rem; line-height: 1.5;">
+                                <strong style="color: var(--red);">❗ WICHTIG:</strong> In einem echten Netz passiert alles <strong style="color: var(--green);">GLEICHZEITIG</strong> (parallel)!<br>
+                                Die Hidden-Neuronen warten nicht aufeinander - sie rechnen alle zur selben Zeit!<br>
+                                Output wartet bis <strong>ALLE</strong> Signale da sind - wie ein Schiedsrichter, der auf alle Stimmen hört!
+                            </p>
+                        </div>
+                        
+                        <div class="kb" style="margin-top: 15px;">
+                            <h4>Wie dein echtes Gehirn!</h4>
+                            <p style="font-size: 0.85rem; color: #ccc; line-height: 1.6;">
+                                🧠 Dein Gehirn hat <span class="hl-green">86 Milliarden</span> Neuronen!<br>
+                                ⚡ Signale rasen mit <span class="hl-blue">400 km/h</span> durch deine Nerven!<br>
+                                🌟 Unser Vogel hat nur 50 Neuronen - dein Gehirn ist 1,7 MILLIARDEN mal größer!<br>
+                                💭 Jedes Neuron kann mit 10.000 anderen "sprechen"!
+                            </p>
                         </div>
                     </div>
 
@@ -1053,6 +1137,9 @@ Wenig Punkte → <span style="color: var(--red)">NEIN!</span>
                                 <p>Am Anfang starten 100 Vögel mit <span class="hl-blue">zufälligen Gehirnen</span>.</p>
                                 <p>Die meisten knallen sofort gegen das Rohr... <span class="hl-red">💥 BONK!</span></p>
                                 <p>Aber ein paar kommen weiter! 🎉</p>
+                                <p style="margin-top: 10px; font-size: 0.85rem; color: #888;">
+                                    <strong>Wie bei Babys:</strong> Manche können früher laufen, andere später!
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -1066,6 +1153,11 @@ Wenig Punkte → <span style="color: var(--red)">NEIN!</span>
                             <div class="accordion-content-inner">
                                 <p>Welcher Vogel kam am weitesten?</p>
                                 <p>Er bekommt die beste <span class="hl-green">"Fitness"</span> - wie eine Note! 📝</p>
+                                <p style="margin-top: 10px; font-size: 0.85rem; color: #888;">
+                                    <strong>In der Natur:</strong> Die stärksten/schnellsten Tiere überleben!<br>
+                                    🦁 Löwe mit mehr Muskeln fängt mehr Beute<br>
+                                    🦒 Giraffe mit längerem Hals kommt an höhere Blätter
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -1079,6 +1171,12 @@ Wenig Punkte → <span style="color: var(--red)">NEIN!</span>
                             <div class="accordion-content-inner">
                                 <p>Die besten Vögel <span class="hl-green">"vererben"</span> ihr Gehirn!</p>
                                 <p>Wie bei echten Tieren: Papa → Baby 👶</p>
+                                <p style="margin-top: 10px; font-size: 0.85rem; color: #888;">
+                                    <strong>Echtes Beispiel:</strong><br>
+                                    👨 Papa ist groß (1,90m)<br>
+                                    👶 Kind wird wahrscheinlich auch groß!<br>
+                                    🧬 Gene werden weitergegeben!
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -1097,6 +1195,13 @@ Wenig Punkte → <span style="color: var(--red)">NEIN!</span>
                                     <li>Manche schlechter... aber okay! 📉</li>
                                     <li>So funktioniert Evolution! 🔄</li>
                                 </ul>
+                                <p style="margin-top: 10px; font-size: 0.85rem; color: #888;">
+                                    <strong>In der Natur:</strong><br>
+                                    🐻‍❄️ Eisbären waren mal braune Bären!<br>
+                                    Durch Mutationen wurden manche weißer → besser getarnt im Schnee!<br>
+                                    🦋 Schmetterlinge entwickelten bunte Farben zur Warnung!<br>
+                                    🦎 Chamäleons lernten Farbe zu wechseln!
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -1106,6 +1211,16 @@ Wenig Punkte → <span style="color: var(--red)">NEIN!</span>
                         <p>Die <strong>Generation</strong> steigt!<br>
                         Der <strong>Rekord</strong> wird besser!<br>
                         Nach ~50 Generationen sind sie Profis! 🏆</p>
+                    </div>
+                    
+                    <div class="kb">
+                        <h4>Mega Fun Fact!</h4>
+                        <p style="font-size: 0.85rem; color: #ccc; line-height: 1.6;">
+                            🦖 Echte Evolution dauert <span class="hl-green">Millionen Jahre</span>!<br>
+                            ⚡ Unser Vogel lernt in <span class="hl-blue">Sekunden</span>!<br>
+                            🧬 Menschen haben sich über 7 Millionen Jahre entwickelt!<br>
+                            🤖 KI-Evolution = Turbo-Modus der Natur! 🚀
+                        </p>
                     </div>
                 </div>
             </div>
@@ -1487,28 +1602,27 @@ function drawNetwork(brain) {
     netCtx.clearRect(0, 0, netCanvas.width, netCanvas.height);
     if(!brain) return;
     
-    // Optimierte Positionen für 216x180 canvas
-    const layerX = [38, 108, 178]; 
-    const nodeRadius = 11;
+    // Perfekt angepasst für 194x172 canvas - ALLES passt rein!
+    const layerX = [35, 97, 159]; 
+    const nodeRadius = 10;
     
-    // Create neuron positions
+    // Create neuron positions - kompakt aber gut lesbar
     const inPos = []; 
-    for(let i=0; i<4; i++) inPos.push({x: layerX[0], y: 38 + i * 36});
+    for(let i=0; i<4; i++) inPos.push({x: layerX[0], y: 33 + i * 33});
     const hidPos = []; 
-    for(let i=0; i<4; i++) hidPos.push({x: layerX[1], y: 38 + i * 36});
-    const outPos = [{x: layerX[2], y: 92}];
+    for(let i=0; i<4; i++) hidPos.push({x: layerX[1], y: 33 + i * 33});
+    const outPos = [{x: layerX[2], y: 82.5}];
 
-    // Function to draw connections - SEHR SICHTBAR!
+    // Draw connections - sehr sichtbar!
     const drawConn = (p1, p2, w) => {
         let strength = Math.abs(w);
         let color = w > 0 ? "0, 243, 255" : "255, 0, 85"; 
         
-        // Sehr starke Sichtbarkeit!
         let alpha = Math.min(1, strength * 1.2); 
         if(alpha < 0.35) alpha = 0.35;
         
         netCtx.strokeStyle = `rgba(${color}, ${alpha})`;
-        netCtx.lineWidth = Math.max(2.5, strength * 4.5);
+        netCtx.lineWidth = Math.max(2, strength * 4);
         
         netCtx.beginPath(); 
         netCtx.moveTo(p1.x, p1.y); 
@@ -1523,32 +1637,24 @@ function drawNetwork(brain) {
     for(let h=0; h<4; h++) 
         drawConn(hidPos[h], outPos[0], brain.wHO[h][0]);
 
-    // Function to draw neurons - BESSERE AKTIVIERUNGS-ANZEIGE!
+    // Draw neurons mit 3 Aktivierungs-Stufen
     const drawNodes = (pos, vals) => {
         for(let i=0; i<pos.length; i++) {
             let val = vals[i] || 0; 
             
-            // Neuron circle
             netCtx.beginPath(); 
             netCtx.arc(pos[i].x, pos[i].y, nodeRadius, 0, Math.PI*2);
             
-            // BESSERE Farbabstufung basierend auf Aktivierung!
-            // Niedrig (0-0.3): Dunkelgrau
-            // Mittel (0.3-0.6): Grau
-            // Hoch (0.6-1.0): Hell bis Grün!
-            
+            // 3-Stufen Farbsystem
             let fillColor;
             if(val < 0.3) {
-                // Inaktiv - dunkelgrau
                 let brightness = Math.floor(val * 100) + 60;
                 fillColor = `rgb(${brightness}, ${brightness}, ${brightness})`;
             } else if(val < 0.6) {
-                // Mittel aktiv - grau
                 let brightness = Math.floor(val * 150) + 80;
                 fillColor = `rgb(${brightness}, ${brightness}, ${brightness})`;
             } else {
-                // Sehr aktiv - grün!
-                let greenIntensity = Math.floor((val - 0.6) * 637.5); // 0-255
+                let greenIntensity = Math.floor((val - 0.6) * 637.5);
                 let base = 150;
                 fillColor = `rgb(${base}, ${base + greenIntensity}, ${base})`;
             }
@@ -1556,15 +1662,15 @@ function drawNetwork(brain) {
             netCtx.fillStyle = fillColor;
             netCtx.fill();
             
-            // Border - NUR grün bei HOHER Aktivierung (> 0.6)!
+            // Border
             if(val > 0.6) {
                 netCtx.strokeStyle = "#00ff41"; 
-                netCtx.lineWidth = 3.5;
+                netCtx.lineWidth = 3;
                 netCtx.shadowColor = "#00ff41";
-                netCtx.shadowBlur = 18;
+                netCtx.shadowBlur = 15;
             } else if(val > 0.3) {
                 netCtx.strokeStyle = "#888"; 
-                netCtx.lineWidth = 2.5;
+                netCtx.lineWidth = 2;
                 netCtx.shadowBlur = 0;
             } else {
                 netCtx.strokeStyle = "#555"; 
@@ -1581,21 +1687,21 @@ function drawNetwork(brain) {
     drawNodes(hidPos, brain.visHidden); 
     drawNodes(outPos, brain.visOutput);
 
-    // Layer labels
+    // Layer labels - kompakt
     netCtx.fillStyle = "#00f3ff"; 
-    netCtx.font = "bold 11px monospace";
+    netCtx.font = "bold 9px monospace";
     netCtx.textAlign = "center";
-    netCtx.fillText("IN", layerX[0], 20); 
-    netCtx.fillText("HID", layerX[1], 20); 
-    netCtx.fillText("OUT", layerX[2], 20);
+    netCtx.fillText("IN", layerX[0], 18); 
+    netCtx.fillText("HID", layerX[1], 18); 
+    netCtx.fillText("OUT", layerX[2], 18);
     
-    // Jump indicator
+    // JUMP! indicator - PASST JETZT REIN!
     if(brain.visOutput[0] > 0.5) {
         netCtx.fillStyle = "#00ff41"; 
-        netCtx.font = "bold 14px monospace"; 
+        netCtx.font = "bold 11px monospace"; 
         netCtx.shadowColor = "#00ff41";
-        netCtx.shadowBlur = 12;
-        netCtx.fillText("JUMP!", layerX[2], 168);
+        netCtx.shadowBlur = 10;
+        netCtx.fillText("JUMP!", layerX[2], 160);
         netCtx.shadowBlur = 0;
     }
 }
@@ -1731,27 +1837,309 @@ function activateNeuron(element) {
     // Add active class for animation
     element.classList.add('active');
     
-    // Create ripple effect
+    // Find which layer this neuron is in
+    const neuronLayer = element.closest('.neuron-layer');
+    const allLayers = Array.from(document.querySelectorAll('.neuron-layer'));
+    const currentLayerIndex = allLayers.indexOf(neuronLayer);
+    
+    // Get layer type from label
+    const layerLabel = neuronLayer.querySelector('.layer-label')?.textContent;
+    
+    // Create ripple effect immediately
+    createRipple(element);
+    
+    // Handle different layer types
+    if(layerLabel === 'EINGABE') {
+        // INPUT LAYER: Start the cascade - Input → Hidden → Output
+        const hiddenLayer = allLayers[1];
+        const hiddenNeurons = Array.from(hiddenLayer.querySelectorAll('.neuron'));
+        const outputLayer = allLayers[2];
+        
+        // Phase 1: Input → Hidden (gestaffelt für Visualisierung)
+        let signalsToHidden = [];
+        hiddenNeurons.forEach((targetNeuron, index) => {
+            let promise = new Promise(resolve => {
+                setTimeout(() => {
+                    createSignalParticle(element, targetNeuron, resolve);
+                }, index * 100);
+            });
+            signalsToHidden.push(promise);
+        });
+        
+        // Warte bis ALLE Signale bei Hidden angekommen sind
+        Promise.all(signalsToHidden).then(() => {
+            // Phase 2: Hidden verarbeitet PARALLEL!
+            setTimeout(() => {
+                processHiddenLayer(hiddenNeurons, outputLayer);
+            }, 100);
+        });
+        
+    } else if(layerLabel === 'VERSTECKT') {
+        // HIDDEN LAYER clicked directly: Send to output
+        const outputLayer = allLayers[2];
+        const outputNeuron = outputLayer.querySelector('.neuron');
+        
+        createSignalParticle(element, outputNeuron, () => {
+            setTimeout(() => {
+                showOutputProcessing(outputNeuron);
+            }, 100);
+        });
+        
+    } else if(layerLabel === 'AUSGABE') {
+        // OUTPUT LAYER: Show decision directly
+        showOutputProcessing(element);
+    }
+    
+    // Remove active class
+    setTimeout(() => element.classList.remove('active'), 1000);
+}
+
+function processHiddenLayer(hiddenNeurons, outputLayer) {
+    const outputNeuron = outputLayer.querySelector('.neuron');
+    
+    // WICHTIG: Aktiviere ALLE Hidden-Neuronen GLEICHZEITIG (parallel!)
+    hiddenNeurons.forEach(neuron => {
+        neuron.classList.add('active');
+        createRipple(neuron);
+    });
+    
+    // ALLE Hidden-Neuronen senden GLEICHZEITIG zu Output (leicht gestaffelt für Sichtbarkeit)
+    let signalsToOutput = [];
+    hiddenNeurons.forEach((neuron, index) => {
+        let promise = new Promise(resolve => {
+            setTimeout(() => {
+                createSignalParticle(neuron, outputNeuron, resolve);
+            }, index * 80); // Schneller gestaffelt
+        });
+        signalsToOutput.push(promise);
+    });
+    
+    // Deaktiviere Hidden nach dem Senden
+    setTimeout(() => {
+        hiddenNeurons.forEach(neuron => {
+            neuron.classList.remove('active');
+        });
+    }, 600);
+    
+    // Warte bis ALLE Signale am Output angekommen sind!
+    Promise.all(signalsToOutput).then(() => {
+        // JETZT verarbeitet Output die Informationen!
+        setTimeout(() => {
+            showOutputProcessing(outputNeuron);
+        }, 100);
+    });
+}
+
+function showOutputProcessing(outputNeuron) {
+    // Phase 1: Output sammelt Informationen
+    outputNeuron.classList.add('active');
+    createRipple(outputNeuron);
+    
+    // Zeige "Berechnung" visuell
+    const processingIndicator = document.createElement('div');
+    processingIndicator.style.cssText = `
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 70px;
+        height: 70px;
+        border: 4px solid var(--blue);
+        border-top-color: var(--green);
+        border-radius: 50%;
+        animation: output-spin 0.6s linear;
+        pointer-events: none;
+        z-index: 10001;
+    `;
+    
+    outputNeuron.style.position = 'relative';
+    outputNeuron.appendChild(processingIndicator);
+    
+    // Add spin animation
+    if(!document.getElementById('output-spin-animation')) {
+        const style = document.createElement('style');
+        style.id = 'output-spin-animation';
+        style.textContent = `
+            @keyframes output-spin {
+                0% { transform: translate(-50%, -50%) rotate(0deg) scale(0.5); opacity: 0; }
+                50% { opacity: 1; }
+                100% { transform: translate(-50%, -50%) rotate(360deg) scale(1); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+    
+    // Remove processing indicator
+    setTimeout(() => {
+        if(processingIndicator.parentNode) {
+            processingIndicator.remove();
+        }
+    }, 600);
+    
+    // Phase 2: Nach der "Berechnung" zeige Entscheidung!
+    setTimeout(() => {
+        showDecision(outputNeuron);
+    }, 650);
+}
+
+function showDecision(outputNeuron) {
+    // Simuliere neuronale Aktivierung: Random, aber gewichtet
+    // (In echtem Netz wären das die gewichteten Summen)
+    const activation = Math.random();
+    const decision = activation > 0.5;
+    
+    // Zeige Aktivierungswert kurz
+    const activationDisplay = document.createElement('div');
+    activationDisplay.style.cssText = `
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: white;
+        font-weight: bold;
+        font-size: 1.1rem;
+        text-shadow: 0 0 10px ${decision ? '#00ff41' : '#ff4444'};
+        z-index: 10002;
+        pointer-events: none;
+        animation: activation-flash 0.3s ease-out;
+    `;
+    activationDisplay.textContent = activation.toFixed(2);
+    
+    outputNeuron.appendChild(activationDisplay);
+    
+    // Add flash animation
+    if(!document.getElementById('activation-flash-animation')) {
+        const style = document.createElement('style');
+        style.id = 'activation-flash-animation';
+        style.textContent = `
+            @keyframes activation-flash {
+                0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+                50% { transform: translate(-50%, -50%) scale(1.5); opacity: 1; }
+                100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+    
+    // Remove activation value
+    setTimeout(() => {
+        if(activationDisplay.parentNode) {
+            activationDisplay.remove();
+        }
+    }, 300);
+    
+    // Zeige finale Entscheidung
+    setTimeout(() => {
+        const decisionBox = document.createElement('div');
+        decisionBox.style.cssText = `
+            position: absolute;
+            top: -80px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 12px 24px;
+            background: ${decision ? 'linear-gradient(135deg, #00ff41, #00aa22)' : 'linear-gradient(135deg, #ff4444, #aa0000)'};
+            color: white;
+            font-weight: bold;
+            font-size: 1.2rem;
+            border-radius: 10px;
+            box-shadow: 0 0 25px ${decision ? '#00ff41' : '#ff4444'};
+            z-index: 10003;
+            animation: decision-appear 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            pointer-events: none;
+            white-space: nowrap;
+        `;
+        
+        decisionBox.innerHTML = `
+            <div style="font-size: 1.4rem; margin-bottom: 3px;">${decision ? '✅' : '⛔'}</div>
+            <div>${decision ? 'SPRING!' : 'WARTE!'}</div>
+            <div style="font-size: 0.7rem; opacity: 0.8; margin-top: 3px;">Aktivierung: ${activation.toFixed(2)} ${decision ? '> 0.5' : '≤ 0.5'}</div>
+        `;
+        
+        const layerElement = outputNeuron.closest('.neuron-layer');
+        layerElement.style.position = 'relative';
+        layerElement.appendChild(decisionBox);
+        
+        // Add animation if not exists
+        if(!document.getElementById('decision-animation')) {
+            const style = document.createElement('style');
+            style.id = 'decision-animation';
+            style.textContent = `
+                @keyframes decision-appear {
+                    0% { transform: translateX(-50%) scale(0) rotate(-10deg); opacity: 0; }
+                    50% { transform: translateX(-50%) scale(1.15) rotate(5deg); }
+                    100% { transform: translateX(-50%) scale(1) rotate(0deg); opacity: 1; }
+                }
+                @keyframes decision-fade {
+                    0% { opacity: 1; transform: translateX(-50%) translateY(0); }
+                    100% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+        
+        // Fade out decision
+        setTimeout(() => {
+            decisionBox.style.animation = 'decision-fade 0.5s ease-out forwards';
+        }, 2000);
+        
+        // Remove decision box
+        setTimeout(() => {
+            if(decisionBox.parentNode) {
+                decisionBox.remove();
+            }
+            outputNeuron.classList.remove('active');
+        }, 2500);
+    }, 350);
+}
+
+function createRipple(element) {
     const ripple = document.createElement('div');
-    ripple.style.position = 'absolute';
-    ripple.style.width = '40px';
-    ripple.style.height = '40px';
-    ripple.style.borderRadius = '50%';
-    ripple.style.border = '2px solid var(--green)';
-    ripple.style.pointerEvents = 'none';
-    ripple.style.animation = 'ripple-effect 0.8s ease-out';
+    ripple.style.cssText = `
+        position: absolute;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        border: 3px solid var(--green);
+        pointer-events: none;
+        animation: ripple-effect 0.8s ease-out;
+        top: 0;
+        left: 0;
+    `;
     
     element.style.position = 'relative';
     element.appendChild(ripple);
     
-    // Add keyframe animation if not exists
-    if(!document.getElementById('ripple-animation')) {
+    // Add CSS animations if not exists
+    if(!document.getElementById('signal-animations')) {
         const style = document.createElement('style');
-        style.id = 'ripple-animation';
+        style.id = 'signal-animations';
         style.textContent = `
             @keyframes ripple-effect {
                 0% { transform: scale(1); opacity: 1; }
-                100% { transform: scale(2.5); opacity: 0; }
+                100% { transform: scale(2.8); opacity: 0; }
+            }
+            .signal-particle {
+                position: absolute;
+                width: 12px;
+                height: 12px;
+                background: radial-gradient(circle, #00ff41, #00aa22);
+                border-radius: 50%;
+                box-shadow: 0 0 15px #00ff41, 0 0 25px #00ff41;
+                pointer-events: none;
+                z-index: 9999;
+                animation: signal-pulse 0.4s ease-in-out infinite;
+            }
+            @keyframes signal-pulse {
+                0%, 100% { transform: scale(1); opacity: 1; }
+                50% { transform: scale(1.4); opacity: 0.8; }
+            }
+            .signal-trail {
+                position: absolute;
+                height: 3px;
+                background: linear-gradient(90deg, transparent, #00ff41, transparent);
+                pointer-events: none;
+                z-index: 9998;
+                opacity: 0.7;
             }
         `;
         document.head.appendChild(style);
@@ -1759,14 +2147,80 @@ function activateNeuron(element) {
     
     // Remove ripple after animation
     setTimeout(() => {
-        if(ripple.parentNode) {
-            ripple.remove();
-        }
+        if(ripple.parentNode) ripple.remove();
     }, 800);
-    
-    // Remove active class
-    setTimeout(() => element.classList.remove('active'), 1000);
 }
+
+function createSignalParticle(fromElement, toElement, onComplete) {
+    // Get positions
+    const fromRect = fromElement.getBoundingClientRect();
+    const toRect = toElement.getBoundingClientRect();
+    
+    // Create container for this specific signal
+    const container = document.querySelector('.neural-demo');
+    if(!container) {
+        if(onComplete) onComplete();
+        return;
+    }
+    
+    container.style.position = 'relative';
+    const containerRect = container.getBoundingClientRect();
+    
+    // Calculate positions relative to container
+    const startX = fromRect.left - containerRect.left + fromRect.width / 2;
+    const startY = fromRect.top - containerRect.top + fromRect.height / 2;
+    const endX = toRect.left - containerRect.left + toRect.width / 2;
+    const endY = toRect.top - containerRect.top + toRect.height / 2;
+    
+    // Create signal particle
+    const particle = document.createElement('div');
+    particle.className = 'signal-particle';
+    particle.style.left = startX - 6 + 'px';
+    particle.style.top = startY - 6 + 'px';
+    container.appendChild(particle);
+    
+    // Create trail effect
+    const trail = document.createElement('div');
+    trail.className = 'signal-trail';
+    const distance = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2));
+    const angle = Math.atan2(endY - startY, endX - startX) * 180 / Math.PI;
+    trail.style.width = '0px';
+    trail.style.left = startX + 'px';
+    trail.style.top = startY + 'px';
+    trail.style.transformOrigin = '0 50%';
+    trail.style.transform = `rotate(${angle}deg)`;
+    container.appendChild(trail);
+    
+    // Animate trail
+    setTimeout(() => {
+        trail.style.transition = 'width 0.5s ease-out';
+        trail.style.width = distance + 'px';
+    }, 10);
+    
+    // Animate particle
+    setTimeout(() => {
+        particle.style.transition = 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
+        particle.style.left = endX - 6 + 'px';
+        particle.style.top = endY - 6 + 'px';
+    }, 50);
+    
+    // Flash target neuron when signal arrives
+    setTimeout(() => {
+        toElement.classList.add('active');
+        createRipple(toElement);
+        setTimeout(() => toElement.classList.remove('active'), 300);
+        
+        // Call completion callback
+        if(onComplete) onComplete();
+    }, 500);
+    
+    // Cleanup
+    setTimeout(() => {
+        particle.remove();
+        trail.remove();
+    }, 600);
+}
+
 
 // Perzeptron Canvas Setup
 let perceptronCanvas = document.getElementById('perceptronCanvas');
