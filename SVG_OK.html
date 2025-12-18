@@ -1,0 +1,388 @@
+<!-- --- START OF FILE svg_pixel_stable.html --- -->
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pixel Architect - STABLE</title>
+    <style>
+        :root {
+            --bg: #1e1e1e;
+            --panel: #2d2d2d;
+            --border: #444;
+            --accent: #4caf50; /* Zuverlässiges Grün */
+            --text: #e0e0e0;
+            --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body { background: var(--bg); color: var(--text); font-family: var(--font); margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+        
+        h1 { margin: 0 0 20px 0; font-weight: 300; letter-spacing: 1px; }
+        strong { color: white; font-weight: 600; }
+
+        .container { display: grid; grid-template-columns: 350px 1fr; gap: 20px; width: 100%; max-width: 1100px; }
+        @media (max-width: 800px) { .container { grid-template-columns: 1fr; } }
+
+        .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 20px; display: flex; flex-direction: column; gap: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+
+        /* INPUTS */
+        .drop-zone {
+            border: 2px dashed #666; border-radius: 6px; padding: 30px 20px; text-align: center; cursor: pointer; transition: background 0.2s; background: #333;
+        }
+        .drop-zone:hover { background: #3a3a3a; border-color: var(--accent); }
+        .drop-zone.active { background: #3a3a3a; border-color: white; }
+        
+        input[type="text"], input[type="number"] {
+            background: #111; border: 1px solid var(--border); color: white; padding: 8px; border-radius: 4px; width: 100%; box-sizing: border-box; font-family: monospace;
+        }
+
+        .row { display: flex; gap: 10px; align-items: center; }
+        .col { flex: 1; }
+        label { font-size: 12px; color: #aaa; display: block; margin-bottom: 4px; text-transform: uppercase; }
+
+        /* BUTTONS */
+        button {
+            background: var(--accent); color: white; border: none; padding: 12px; border-radius: 4px; font-weight: bold; cursor: pointer; transition: opacity 0.2s; width: 100%; font-size: 14px;
+        }
+        button:hover { opacity: 0.9; }
+        button:disabled { background: #555; cursor: not-allowed; opacity: 0.7; }
+        button.secondary { background: #444; margin-top: 10px; }
+
+        /* PREVIEW & OUTPUT */
+        .preview-box {
+            background-color: #111;
+            /* Schachbrettmuster für Transparenz */
+            background-image: linear-gradient(45deg, #1a1a1a 25%, transparent 25%), linear-gradient(-45deg, #1a1a1a 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #1a1a1a 75%), linear-gradient(-45deg, transparent 75%, #1a1a1a 75%);
+            background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+            height: 400px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border); border-radius: 4px; overflow: hidden;
+        }
+        
+        textarea {
+            width: 100%; height: 150px; background: #111; color: #81c784; border: 1px solid var(--border); border-radius: 4px; padding: 10px; font-family: monospace; font-size: 11px; resize: none; box-sizing: border-box;
+        }
+
+        .error-msg { color: #ff5252; font-size: 13px; margin-top: 5px; display: none; border: 1px solid #ff5252; padding: 10px; border-radius: 4px; background: rgba(255,82,82,0.1); }
+        .success-msg { color: var(--accent); font-size: 12px; margin-top: 5px; text-align: right; }
+    </style>
+</head>
+<body>
+
+    <h1>Pixel Architect <strong>STABLE</strong></h1>
+
+    <div class="container">
+        <!-- LEFT: CONTROLS -->
+        <div class="panel">
+            
+            <!-- 1. SOURCE -->
+            <div>
+                <label>1. Bild laden</label>
+                <div class="drop-zone" id="dropZone">
+                    <span id="dropText">Bild hier ablegen<br><small>(oder klicken)</small></span>
+                    <input type="file" id="fileInput" hidden accept="image/*">
+                </div>
+                <div style="margin-top: 10px;">
+                    <input type="text" id="urlInput" placeholder="Oder Bild-URL einfügen...">
+                    <button onclick="loadUrl()" class="secondary" style="padding: 6px;">URL Laden</button>
+                </div>
+                <div id="errorBox" class="error-msg"></div>
+            </div>
+
+            <!-- 2. SETTINGS -->
+            <div id="settingsArea" style="opacity: 0.5; pointer-events: none;">
+                <label>2. Ziel-Größe (Pixel)</label>
+                <div class="row">
+                    <div class="col">
+                        <label>Breite</label>
+                        <input type="number" id="inWidth" value="32" min="1" max="256">
+                    </div>
+                    <div style="padding-top:15px">x</div>
+                    <div class="col">
+                        <label>Höhe</label>
+                        <input type="number" id="inHeight" value="32" min="1" max="256">
+                    </div>
+                </div>
+                
+                <div class="row" style="margin-top: 10px;">
+                    <input type="checkbox" id="keepRatio" checked style="width:auto;">
+                    <label style="margin:0; cursor:pointer;" for="keepRatio">Seitenverhältnis beibehalten</label>
+                </div>
+
+                <div class="row" style="margin-top: 15px;">
+                    <input type="checkbox" id="optimizeColors" checked style="width:auto;">
+                    <label style="margin:0; cursor:pointer;" for="optimizeColors">Farben optimieren (kleinere Datei)</label>
+                </div>
+            </div>
+
+            <!-- 3. ACTION -->
+            <button id="convertBtn" onclick="processImage()" disabled>SVG Generieren</button>
+            <div id="statusText" class="success-msg"></div>
+        </div>
+
+        <!-- RIGHT: OUTPUT -->
+        <div class="panel">
+            <div class="preview-box" id="previewContainer">
+                <span style="color: #666;">Vorschau</span>
+            </div>
+            
+            <div>
+                <label>Ergebnis Code (HTML/SVG)</label>
+                <textarea id="outputCode" readonly onclick="this.select()"></textarea>
+            </div>
+            
+            <button onclick="downloadFile()" class="secondary">Als .html Datei speichern</button>
+        </div>
+    </div>
+
+<script>
+    // --- GLOBAL VARIABLES ---
+    let originalImage = null; // Das Source Image Objekt
+    let fileName = "pixel-art";
+    let aspectRatio = 1;
+
+    // --- DOM ELEMENTS ---
+    const els = {
+        dropZone: document.getElementById('dropZone'),
+        fileInput: document.getElementById('fileInput'),
+        urlInput: document.getElementById('urlInput'),
+        errorBox: document.getElementById('errorBox'),
+        settingsArea: document.getElementById('settingsArea'),
+        inWidth: document.getElementById('inWidth'),
+        inHeight: document.getElementById('inHeight'),
+        keepRatio: document.getElementById('keepRatio'),
+        convertBtn: document.getElementById('convertBtn'),
+        preview: document.getElementById('previewContainer'),
+        output: document.getElementById('outputCode'),
+        status: document.getElementById('statusText'),
+        optimizeColors: document.getElementById('optimizeColors')
+    };
+
+    // --- EVENT LISTENERS ---
+    // 1. Drag & Drop Robustness
+    els.dropZone.addEventListener('click', () => els.fileInput.click());
+    
+    // Prevent default browser behavior for drag events
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        els.dropZone.addEventListener(eventName, preventDefaults, false);
+    });
+    function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
+
+    els.dropZone.addEventListener('dragover', () => els.dropZone.classList.add('active'));
+    els.dropZone.addEventListener('dragleave', () => els.dropZone.classList.remove('active'));
+    els.dropZone.addEventListener('drop', handleDrop);
+    
+    els.fileInput.addEventListener('change', (e) => {
+        if(e.target.files[0]) processFile(e.target.files[0]);
+    });
+
+    // 2. Dimension Logic
+    els.inWidth.addEventListener('input', () => {
+        if(els.keepRatio.checked && originalImage) {
+            els.inHeight.value = Math.max(1, Math.round(els.inWidth.value / aspectRatio));
+        }
+    });
+    els.inHeight.addEventListener('input', () => {
+        if(els.keepRatio.checked && originalImage) {
+            els.inWidth.value = Math.max(1, Math.round(els.inHeight.value * aspectRatio));
+        }
+    });
+
+    // --- FUNCTIONS ---
+
+    function showError(msg) {
+        els.errorBox.style.display = 'block';
+        els.errorBox.innerText = "Fehler: " + msg;
+        setTimeout(() => els.errorBox.style.display = 'none', 5000);
+    }
+
+    function handleDrop(e) {
+        els.dropZone.classList.remove('active');
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        if (files[0]) processFile(files[0]);
+    }
+
+    function processFile(file) {
+        if(!file.type.startsWith('image/')) return showError("Das ist keine Bilddatei.");
+        fileName = file.name.split('.')[0].replace(/[^a-z0-9]/gi, '-').toLowerCase();
+        
+        const reader = new FileReader();
+        reader.onload = (e) => initImage(e.target.result);
+        reader.readAsDataURL(file);
+    }
+
+    function loadUrl() {
+        const url = els.urlInput.value.trim();
+        if(!url) return;
+        fileName = "url-image";
+        initImage(url, true);
+    }
+
+    function initImage(src, isUrl = false) {
+        els.status.innerText = "Lade Bild...";
+        const img = new Image();
+        if(isUrl) img.crossOrigin = "Anonymous"; // Wichtig für Canvas Zugriff
+        
+        img.onload = () => {
+            originalImage = img;
+            aspectRatio = img.width / img.height;
+            
+            // UI aktivieren
+            els.settingsArea.style.opacity = "1";
+            els.settingsArea.style.pointerEvents = "all";
+            els.convertBtn.disabled = false;
+            els.convertBtn.innerText = "SVG Generieren";
+            
+            // Defaults setzen
+            let w = img.width;
+            if(w > 64) w = 64; // Max Startgröße
+            els.inWidth.value = w;
+            els.inHeight.value = Math.round(w / aspectRatio);
+            
+            document.getElementById('dropText').innerText = `Geladen: ${img.width}x${img.height}px`;
+            els.status.innerText = "";
+            els.errorBox.style.display = "none";
+        };
+
+        img.onerror = () => {
+            showError("Bild konnte nicht geladen werden. Bei URLs blockiert oft der Server den Zugriff (CORS). Bitte Bild herunterladen und Upload nutzen.");
+            els.status.innerText = "";
+        };
+
+        img.src = src;
+    }
+
+    // --- MAIN ENGINE ---
+    async function processImage() {
+        if(!originalImage) return;
+        
+        els.convertBtn.disabled = true;
+        els.convertBtn.innerText = "Verarbeite...";
+        
+        // Give UI a moment to update text
+        await new Promise(resolve => setTimeout(resolve, 50));
+
+        try {
+            const w = parseInt(els.inWidth.value);
+            const h = parseInt(els.inHeight.value);
+            const optimize = els.optimizeColors.checked;
+
+            if(w < 1 || h < 1) throw new Error("Ungültige Größe");
+
+            // 1. Get Data from Canvas
+            const canvas = document.createElement('canvas');
+            canvas.width = originalImage.width;
+            canvas.height = originalImage.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(originalImage, 0, 0);
+            
+            // Security Check
+            let data;
+            try {
+                data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+            } catch(e) {
+                throw new Error("Sicherheitsfehler: Browser verweigert Zugriff auf Pixeldaten (CORS).");
+            }
+
+            // 2. Algorithm: Center Sampling + RLE
+            const colorMap = {};
+            const ratioX = originalImage.width / w;
+            const ratioY = originalImage.height / h;
+
+            // Helper for Hex
+            const toHex = (r,g,b,a) => {
+                if(a < 50) return null; // Transparenz
+                if(optimize) {
+                    // Farben runden auf nächste 16er Schritte (reduziert Dateigröße massiv)
+                    r = Math.round(r/16)*16; g = Math.round(g/16)*16; b = Math.round(b/16)*16;
+                    // Clamp to 255
+                    r=Math.min(255,r); g=Math.min(255,g); b=Math.min(255,b);
+                }
+                return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+            };
+
+            let pixelCount = 0;
+
+            for(let y = 0; y < h; y++) {
+                let currentHex = null;
+                let startX = -1;
+
+                for(let x = 0; x < w; x++) {
+                    // Center Sample Math
+                    const srcX = Math.floor((x + 0.5) * ratioX);
+                    const srcY = Math.floor((y + 0.5) * ratioY);
+                    const i = (srcY * originalImage.width + srcX) * 4;
+
+                    const hex = toHex(data[i], data[i+1], data[i+2], data[i+3]);
+
+                    if(hex !== currentHex) {
+                        if(currentHex) {
+                            if(!colorMap[currentHex]) colorMap[currentHex] = [];
+                            // SVG Path Command: M(ove) h(orizontal line) v(ertical line)
+                            colorMap[currentHex].push(`M${startX},${y}h${x-startX}v1h-${x-startX}z`);
+                        }
+                        currentHex = hex;
+                        startX = x;
+                    }
+                    if(hex) pixelCount++;
+                }
+                // End of row check
+                if(currentHex) {
+                    if(!colorMap[currentHex]) colorMap[currentHex] = [];
+                    colorMap[currentHex].push(`M${startX},${y}h${w-startX}v1h-${w-startX}z`);
+                }
+            }
+
+            // 3. Construct SVG
+            let paths = "";
+            for(const color in colorMap) {
+                paths += `<path fill="${color}" d="${colorMap[color].join('')}" />`;
+            }
+
+            const svgBody = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" shape-rendering="crispEdges" style="image-rendering: pixelated; width:100%; height:100%;">
+  ${paths}
+</svg>`;
+
+            // 4. Generate Output HTML
+            const htmlOutput = `<!DOCTYPE html>
+<html>
+<head>
+<title>Pixel Art: ${fileName}</title>
+<style>
+  body { background: #222; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+  .pixel-art { width: 50vmin; height: 50vmin; /* Responsive Size */ }
+</style>
+</head>
+<body>
+
+<div class="pixel-art">
+${svgBody}
+</div>
+
+</body>
+</html>`;
+
+            // Display
+            els.preview.innerHTML = svgBody;
+            els.output.value = htmlOutput;
+            
+            const sizeKB = (htmlOutput.length / 1024).toFixed(1);
+            els.status.innerText = `Fertig! ${pixelCount} Pixel verarbeitet (${sizeKB} KB)`;
+
+        } catch(err) {
+            showError(err.message);
+        } finally {
+            els.convertBtn.disabled = false;
+            els.convertBtn.innerText = "SVG Generieren";
+        }
+    }
+
+    function downloadFile() {
+        const blob = new Blob([els.output.value], {type: "text/html"});
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = fileName + ".html";
+        link.click();
+    }
+</script>
+</body>
+</html>
