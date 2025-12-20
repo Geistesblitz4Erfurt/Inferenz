@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pixel Architect: INTEGRITY LAB AI</title>
+    <style>
+        :root {
+            --bg: #0d1117; --panel: #161b22; --border: #30363d;
+            --primary: #2f81f7; --text: #e6edf3; --text-dim: #8b949e;
+            --code-bg: #0d1117; --success: #238636; --error: #da3633; --warning: #d29922;
+        }
+        * { box-sizing: border-box; outline: none; }
+        body {
+            background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            margin: 0; padding: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden;
+        }
+
+        /* HEADER */
+        header { 
+            padding: 15px 20px; border-bottom: 1px solid var(--border); background: var(--panel); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+        }
+        h1 { margin: 0; font-size: 1.2rem; font-weight: 600; letter-spacing: 0.5px; }
+        .tag { font-size: 0.7rem; padding: 2px 8px; border-radius: 10px; border: 1px solid var(--primary); color: var(--primary); margin-left: 10px; text-transform: uppercase; }
+
+        /* MAIN LAYOUT */
+        .layout { display: grid; grid-template-columns: 320px 1fr; height: calc(100vh - 60px); overflow: hidden; }
+        
+        /* SIDEBAR */
+        .sidebar { border-right: 1px solid var(--border); padding: 20px; overflow-y: auto; background: var(--bg); display: flex; flex-direction: column; gap: 20px; }
+        
+        /* INPUTS */
+        .input-group { margin-bottom: 15px; }
+        label { display: block; font-size: 0.7rem; font-weight: bold; color: var(--text-dim); margin-bottom: 5px; text-transform: uppercase; }
+        input[type="text"], input[type="number"] {
+            width: 100%; background: #010409; border: 1px solid var(--border); color: var(--text); padding: 8px; border-radius: 6px; font-family: monospace;
+        }
+        input[type="range"] { width: 100%; cursor: pointer; accent-color: var(--primary); }
+        
+        .drop-zone {
+            border: 2px dashed var(--border); border-radius: 6px; padding: 30px; text-align: center; cursor: pointer; transition: 0.2s; background: rgba(255,255,255,0.01);
+        }
+        .drop-zone:hover { border-color: var(--primary); background: rgba(47, 129, 247, 0.1); }
+
+        .btn { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--panel); color: var(--text); cursor: pointer; font-weight: 600; transition: 0.2s; }
+        .btn:hover { background: var(--border); }
+        .btn-primary { background: var(--success); border-color: rgba(255,255,255,0.1); color: white; }
+        .btn-primary:hover:not(:disabled) { background: #2ea043; }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(1); }
+
+        .toggle-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+        .toggle-label { font-size: 0.8rem; color: var(--text); }
+
+        /* MAIN CONTENT */
+        .main-view { display: flex; flex-direction: column; height: 100%; overflow: hidden; background: #010409; position: relative; }
+        
+        /* TABS */
+        .tabs { display: flex; overflow-x: auto; background: var(--panel); border-bottom: 1px solid var(--border); scrollbar-width: none; flex-shrink: 0; }
+        .tab-btn {
+            padding: 12px 16px; background: transparent; border: none; color: var(--text-dim); cursor: pointer; font-size: 0.8rem; white-space: nowrap; border-right: 1px solid var(--border); border-bottom: 2px solid transparent;
+        }
+        .tab-btn:hover { color: var(--text); background: rgba(255,255,255,0.02); }
+        .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); background: var(--bg); font-weight: bold; }
+
+        /* VIEW CONTAINER */
+        .view-container { flex: 1; position: relative; display: none; flex-direction: column; overflow: hidden; }
+        .view-container.active { display: flex; }
+
+        .toolbar { padding: 10px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: var(--bg); flex-shrink: 0; }
+        .std-badge { font-family: monospace; font-size: 0.75rem; color: var(--success); background: rgba(35, 134, 54, 0.15); padding: 2px 8px; border-radius: 4px; }
+
+        textarea {
+            flex: 1; width: 100%; border: none; background: #0d1117; color: #e6edf3; padding: 20px; font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12px; resize: none; outline: none; line-height: 1.5;
+        }
+
+        /* PREVIEW STAGE */
+        .preview-stage {
+            flex: 1; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden;
+            background-image: linear-gradient(45deg, #161b22 25%, transparent 25%), linear-gradient(-45deg, #161b22 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #161b22 75%), linear-gradient(-45deg, transparent 75%, #161b22 75%);
+            background-size: 20px 20px;
+            min-height: 300px;
+        }
+        .preview-stage svg { max-width: 90%; max-height: 80vh; z-index: 2; filter: drop-shadow(0 10px 30px rgba(0,0,0,0.5)); image-rendering: pixelated; }
+        #bgLayer { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+
+        /* LOG */
+        #logPanel { font-family: monospace; font-size: 0.7rem; color: var(--text-dim); max-height: 150px; overflow-y: auto; padding: 10px; background: #010409; border-top: 1px solid var(--border); }
+        .log-line { margin-bottom: 4px; }
+        .log-line.active { color: var(--primary); }
+        .log-line.done { color: var(--success); }
+        .log-line.error { color: var(--error); }
+
+        .progress-bar { height: 3px; background: var(--border); width: 100%; position: absolute; top: 0; left: 0; z-index: 10; }
+        .progress-fill { height: 100%; width: 0%; background: var(--success); transition: width 0.1s linear; }
+
+        /* RESPONSIVE CSS */
+        @media (max-width: 900px) {
+            body { height: auto; min-height: 100vh; overflow-y: auto; display: block; }
+            .layout { display: flex; flex-direction: column; height: auto; overflow: visible; }
+            .sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--border); height: auto; padding-bottom: 30px; }
+            .main-view { height: 80vh; min-height: 500px; border-top: 5px solid var(--bg); }
+            .toolbar { flex-wrap: wrap; gap: 10px; padding: 15px; }
+            .toolbar > div { width: 100%; display: flex; justify-content: space-between; }
+            .toolbar button { flex: 1; text-align: center; }
+            header { flex-direction: column; align-items: flex-start; gap: 5px; }
+            header div { align-self: flex-end; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Pixel Architect <span class="tag">Smart Crop Engine</span></h1>
+        <div style="font-size:0.8rem; color:var(--text-dim)">V4.1 • Auto-Trim Transparency</div>
+    </header>
+
+    <div class="layout">
+        
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+            <div class="drop-zone" id="dropZone">
+                <div style="font-size:2rem; margin-bottom:10px;">📂</div>
+                <div id="statusText">Bild Importieren</div>
+                <input type="file" id="fileInput" hidden accept="image/*">
+            </div>
+            
+            <div style="display:flex; gap:5px;">
+                <input type="text" id="urlInput" placeholder="https://...">
+                <button class="btn" style="width:auto;" onclick="App.loadUrl()">Laden</button>
+            </div>
+
+            <hr style="border:0; border-top:1px solid var(--border); width:100%;">
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                <div class="input-group">
+                    <label>Breite (px)</label>
+                    <input type="number" id="inWidth" value="32">
+                </div>
+                <div class="input-group">
+                    <label>Höhe (px)</label>
+                    <input type="number" id="inHeight" value="32">
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label>Maximaler Kontrast (Details)</label>
+                <!-- Default 20 für mehr Schärfe -->
+                <input type="range" id="contrast" min="-50" max="150" value="20">
+            </div>
+
+            <div class="input-group">
+                <label>Farb-Toleranz (Artifact Cleaner)</label>
+                <input type="range" id="sensitivity" min="0" max="40" value="5">
+            </div>
+
+            <hr style="border:0; border-top:1px solid var(--border); width:100%;">
+            
+            <div class="toggle-row">
+                <span class="toggle-label">Smart Background Removal</span>
+                <input type="checkbox" id="smartBg" checked disabled> <!-- Always ON -->
+            </div>
+
+            <div class="toggle-row">
+                <span class="toggle-label" style="color:var(--primary);">Auto-Trim (Zuschneiden)</span>
+                <input type="checkbox" id="autoTrim" checked>
+            </div>
+            <div style="font-size:0.7rem; color:var(--text-dim); margin-bottom:10px;">
+                Schneidet leeren transparenten Raum weg. Das SVG wird exakt so groß wie das Motiv.
+            </div>
+
+            <hr style="border:0; border-top:1px solid var(--border); width:100%;">
+
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:20px;">
+                <label style="margin:0;">Vorschau BG:</label>
+                <input type="color" id="bgColor" value="#161b22">
+                <input type="range" id="bgAlpha" min="0" max="100" value="0" style="flex:1">
+            </div>
+
+            <button id="procBtn" class="btn btn-primary" onclick="App.startPipeline()" disabled>RUN PIPELINE</button>
+            
+            <div id="logPanel">
+                <div class="log-line">System bereit.</div>
+                <div class="log-line" style="color:var(--success)">Regel: Hintergrund immer transparent.</div>
+            </div>
+        </aside>
+
+        <!-- MAIN VIEW -->
+        <main class="main-view">
+            <div class="progress-bar"><div class="progress-fill" id="progFill"></div></div>
+            
+            <div class="tabs" id="tabBar">
+                <!-- Tabs injected here -->
+            </div>
+
+            <div id="viewsRoot" style="flex:1; position:relative; overflow:hidden; display:flex; flex-direction:column;">
+                <!-- Code views injected here -->
+                
+                <!-- PREVIEW (Static) -->
+                <div id="view-preview" class="view-container active">
+                    <div class="preview-stage">
+                        <div id="bgLayer"></div>
+                        <div id="svgContainer" style="color:var(--text-dim)">Warte auf Daten...</div>
+                    </div>
+                    <div class="toolbar" style="border-top:1px solid var(--border); border-bottom:none;">
+                        <span class="std-badge" style="display:none;">PREVIEW</span>
+                        <div style="display:flex; gap:10px; width:100%;">
+                            <button class="btn" style="flex:1;" onclick="App.download('svg')">SVG</button>
+                            <button class="btn" style="flex:1;" onclick="App.download('pdf')">PDF</button>
+                            <button class="btn" style="flex:1;" onclick="App.download('html')">Bundle</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Hidden PDF Frame -->
+    <iframe id="pdfFrame" style="position:fixed; top:-9999px;"></iframe>
+
+    <!-- WORKER: THE LOGIC BRAIN -->
+    <script id="worker-code" type="javascript/worker">
+        self.onmessage = function(e) {
+            try {
+                const { pixels: buffer, width, height, config } = e.data;
+                const { targetW, targetH, sensitivity, contrast, autoTrim } = config;
+                
+                // 1. Data Preparation
+                const pixels = new Uint8ClampedArray(buffer);
+                
+                // Helpers
+                const toHex = (r, g, b) => "#" + ((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1);
+                const contrastFactor = (259 * (contrast + 255)) / (255 * (259 - contrast));
+                const snap = (v, s) => s <= 0 ? v : Math.min(255, Math.round(v / Math.max(1, s*4)) * Math.max(1, s*4));
+
+                // Processed Data
+                const procData = new Uint8Array(targetW * targetH * 4);
+                const ratioX = width / targetW;
+                const ratioY = height / targetH;
+
+                // --- PHASE 1: Downsampling & Contrast ---
+                for(let y = 0; y < targetH; y++) {
+                    for(let x = 0; x < targetW; x++) {
+                        const sx = Math.floor((x + 0.5) * ratioX);
+                        const sy = Math.floor((y + 0.5) * ratioY);
+                        const srcI = (sy * width + sx) * 4;
+                        const destI = (y * targetW + x) * 4;
+
+                        let r = pixels[srcI], g = pixels[srcI+1], b = pixels[srcI+2], a = pixels[srcI+3];
+
+                        // Contrast
+                        if(contrast !== 0 && a > 20) {
+                            r = Math.max(0, Math.min(255, contrastFactor * (r - 128) + 128));
+                            g = Math.max(0, Math.min(255, contrastFactor * (g - 128) + 128));
+                            b = Math.max(0, Math.min(255, contrastFactor * (b - 128) + 128));
+                        }
+                        
+                        // Sensitivity (Cleaner colors)
+                        if(sensitivity > 0 && a > 20) {
+                            r = snap(r, sensitivity);
+                            g = snap(g, sensitivity);
+                            b = snap(b, sensitivity);
+                        }
+
+                        procData[destI] = r;
+                        procData[destI+1] = g;
+                        procData[destI+2] = b;
+                        procData[destI+3] = a; 
+                    }
+                }
+
+                // --- PHASE 2: AGGRESSIVE FLOOD FILL (Logic Generator) ---
+                const isBgMap = new Uint8Array(targetW * targetH); // 0 = Content, 1 = BG
+                
+                // Always run Smart BG logic
+                const r0 = procData[0], g0 = procData[1], b0 = procData[2];
+                // Increase tolerance slightly to catch jpeg artifacts
+                const tolerance = 20 + (sensitivity * 2); 
+
+                const queue = [];
+                const visited = new Uint8Array(targetW * targetH);
+
+                const pushIfMatch = (x, y) => {
+                    const idx = (y * targetW + x) * 4;
+                    // Strict check against corners
+                    if(Math.abs(procData[idx] - r0) < tolerance && 
+                       Math.abs(procData[idx+1] - g0) < tolerance && 
+                       Math.abs(procData[idx+2] - b0) < tolerance) {
+                        queue.push(x, y);
+                        visited[y * targetW + x] = 1;
+                        isBgMap[y * targetW + x] = 1;
+                    }
+                };
+
+                // Check all 4 corners
+                pushIfMatch(0, 0);
+                pushIfMatch(targetW - 1, 0);
+                pushIfMatch(0, targetH - 1);
+                pushIfMatch(targetW - 1, targetH - 1);
+
+                let head = 0;
+                while(head < queue.length) {
+                    const cx = queue[head++];
+                    const cy = queue[head++];
+                    const neighbors = [[cx+1, cy], [cx-1, cy], [cx, cy+1], [cx, cy-1]];
+
+                    for(const [nx, ny] of neighbors) {
+                        if(nx >= 0 && nx < targetW && ny >= 0 && ny < targetH) {
+                            const nIdx = ny * targetW + nx;
+                            if(!visited[nIdx]) {
+                                const pIdx = nIdx * 4;
+                                if(Math.abs(procData[pIdx] - r0) < tolerance && 
+                                   Math.abs(procData[pIdx+1] - g0) < tolerance && 
+                                   Math.abs(procData[pIdx+2] - b0) < tolerance) {
+                                    visited[nIdx] = 1;
+                                    isBgMap[nIdx] = 1;
+                                    queue.push(nx, ny);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // --- PHASE 3: LOGICAL TRIMMING (Finding the Content) ---
+                let minX = targetW, maxX = -1, minY = targetH, maxY = -1;
+                let hasContent = false;
+
+                for(let y = 0; y < targetH; y++) {
+                    for(let x = 0; x < targetW; x++) {
+                        const i = y * targetW + x;
+                        const alpha = procData[i*4 + 3];
+                        
+                        // Pixel is VALID if alpha > 20 AND NOT marked as BG
+                        if(alpha > 20 && isBgMap[i] === 0) {
+                            if(x < minX) minX = x;
+                            if(x > maxX) maxX = x;
+                            if(y < minY) minY = y;
+                            if(y > maxY) maxY = y;
+                            hasContent = true;
+                        }
+                    }
+                }
+
+                // If nothing found, return empty
+                if(!hasContent) {
+                   self.postMessage({ type: 'done', result: { meta: {w:targetW, h:targetH}, colors: [], layers: [] } });
+                   return;
+                }
+
+                // Calculate NEW Dimensions based on AutoTrim
+                let finalX = 0, finalY = 0, finalW = targetW, finalH = targetH;
+                
+                if(autoTrim) {
+                    finalX = minX;
+                    finalY = minY;
+                    finalW = maxX - minX + 1;
+                    finalH = maxY - minY + 1;
+                }
+
+                // --- PHASE 4: VECTOR GENERATION (Relative to Crop) ---
+                const colorMap = {};
+                const palette = new Set();
+                
+                self.postMessage({ type: 'progress', val: 50 });
+
+                // Loop ONLY through the crop area
+                for(let y = 0; y < finalH; y++) {
+                    let currentHex = null;
+                    let startX = -1;
+
+                    // Source coordinate on original grid
+                    const srcY = y + finalY;
+
+                    for(let x = 0; x < finalW; x++) {
+                        const srcX = x + finalX;
+                        const i = srcY * targetW + srcX;
+                        
+                        let hex = null;
+                        
+                        // Safety check
+                        if(srcX >= 0 && srcX < targetW && srcY >= 0 && srcY < targetH) {
+                            // Logic: Is this pixel Content?
+                            if(procData[i*4 + 3] > 20 && isBgMap[i] === 0) {
+                                hex = toHex(procData[i*4], procData[i*4+1], procData[i*4+2]);
+                            }
+                        }
+
+                        if(hex !== currentHex) {
+                            if(currentHex) {
+                                if(!colorMap[currentHex]) colorMap[currentHex] = [];
+                                // Path is generated at (x,y) which is 0-based for the new SVG
+                                colorMap[currentHex].push(`M${startX},${y}h${x-startX}v1h-${x-startX}z`);
+                            }
+                            currentHex = hex;
+                            startX = x;
+                            if(hex) palette.add(hex);
+                        }
+                    }
+                    if(currentHex) {
+                        if(!colorMap[currentHex]) colorMap[currentHex] = [];
+                        colorMap[currentHex].push(`M${startX},${y}h${finalW-startX}v1h-${finalW-startX}z`);
+                    }
+                }
+
+                const sortedColors = Array.from(palette).sort();
+                const result = {
+                    meta: { w: finalW, h: finalH, generated: new Date().toISOString() },
+                    colors: sortedColors,
+                    layers: sortedColors.map(c => ({ color: c, path: colorMap[c].join('') }))
+                };
+
+                self.postMessage({ type: 'done', result });
+
+            } catch(err) {
+                self.postMessage({ type: 'error', msg: err.message });
+            }
+        };
+    </script>
+
+    <!-- APP LOGIC -->
+    <script>
+        const FORMATS = [
+            { id: 'base64', label: 'Base64', std: 'RFC 2397 Data URI', ext: 'txt', mime: 'text/plain' },
+            { id: 'svg', label: 'SVG', std: 'W3C SVG 1.1', ext: 'svg', mime: 'image/svg+xml' },
+            { id: 'ai', label: 'AI', std: 'Adobe Illustrator SVG', ext: 'svg', mime: 'image/svg+xml' },
+            { id: 'eps', label: 'EPS', std: 'PostScript Level 3', ext: 'eps', mime: 'application/postscript' },
+            { id: 'dxf', label: 'DXF', std: 'AutoCAD R12 ASCII', ext: 'dxf', mime: 'application/dxf' },
+            { id: 'html', label: 'HTML', std: 'HTML5 Bundle', ext: 'html', mime: 'text/html' },
+            { id: 'xhtml', label: 'XHTML', std: 'XHTML 1.0 Strict', ext: 'xhtml', mime: 'application/xhtml+xml' },
+            { id: 'vanilla', label: 'Vanilla JS', std: 'ES6 Class', ext: 'js', mime: 'text/javascript' },
+            { id: 'tailwind', label: 'Tailwind 4', std: 'Utility Classes', ext: 'html', mime: 'text/html' },
+            { id: 'json', label: 'JSON', std: 'RFC 8259', ext: 'json', mime: 'application/json' },
+            { id: 'xml', label: 'XML', std: 'W3C XML 1.0', ext: 'xml', mime: 'text/xml' },
+            { id: 'sql', label: 'SQL', std: 'ANSI SQL-92', ext: 'sql', mime: 'text/plain' },
+            { id: 'php', label: 'PHP 8.5', std: 'Typed Class', ext: 'php', mime: 'text/x-php' },
+            { id: 'python', label: 'Python 3.11', std: 'Dataclass', ext: 'py', mime: 'text/x-python' },
+            { id: 'rust', label: 'Rust', std: 'Rust 2021 Wasm', ext: 'rs', mime: 'text/rust' },
+            { id: 'wasm_js', label: 'Wasm JS', std: 'Glue Code', ext: 'js', mime: 'text/javascript' }
+        ];
+
+        const App = {
+            worker: null, sourceImage: null, vectorData: null, fileName: 'pixel_asset', outputs: {},
+
+            init() {
+                const blob = new Blob([document.getElementById('worker-code').textContent], {type: "text/javascript"});
+                this.worker = new Worker(URL.createObjectURL(blob));
+                this.worker.onmessage = (e) => {
+                    if(e.data.type === 'progress') this.updateProgress(e.data.val);
+                    else if(e.data.type === 'done') this.runGenerators(e.data.result);
+                    else if(e.data.type === 'error') this.log('Worker Error: ' + e.data.msg, 'error');
+                };
+
+                this.buildUI();
+                this.setupEvents();
+            },
+
+            buildUI() {
+                const bar = document.getElementById('tabBar');
+                const root = document.getElementById('viewsRoot');
+                
+                // Static Preview Tab
+                const pBtn = document.createElement('button');
+                pBtn.className = 'tab-btn active'; pBtn.innerText = '👁️ Preview';
+                pBtn.onclick = () => this.switchTab('preview');
+                bar.appendChild(pBtn);
+
+                FORMATS.forEach(fmt => {
+                    // Tab
+                    const btn = document.createElement('button');
+                    btn.className = 'tab-btn'; btn.innerText = fmt.label;
+                    btn.onclick = () => this.switchTab(fmt.id);
+                    btn.id = `tab-${fmt.id}`;
+                    bar.appendChild(btn);
+
+                    // View
+                    const div = document.createElement('div');
+                    div.className = 'view-container';
+                    div.id = `view-${fmt.id}`;
+                    div.innerHTML = `
+                        <div class="toolbar">
+                            <span class="std-badge">${fmt.std}</span>
+                            <div style="display:flex; gap:10px; width:100%; justify-content:flex-end;">
+                                <button class="btn" style="flex:1; max-width:80px; padding:6px 12px; font-size:0.75rem;" onclick="App.copy('${fmt.id}')">Kopie</button>
+                                <button class="btn" style="flex:1; max-width:80px; padding:6px 12px; font-size:0.75rem;" onclick="App.download('${fmt.id}')">DL</button>
+                            </div>
+                        </div>
+                        <textarea id="out-${fmt.id}" readonly spellcheck="false">Warte auf Prozess...</textarea>
+                    `;
+                    root.appendChild(div);
+                });
+            },
+
+            setupEvents() {
+                const el = (id) => document.getElementById(id);
+                el('dropZone').onclick = () => el('fileInput').click();
+                el('dropZone').ondragover = (e) => { e.preventDefault(); };
+                el('dropZone').ondrop = (e) => { e.preventDefault(); this.handleFile(e.dataTransfer.files[0]); };
+                el('fileInput').onchange = (e) => this.handleFile(e.target.files[0]);
+                
+                // BG
+                const updateBg = () => {
+                    const h = el('bgColor').value;
+                    const a = el('bgAlpha').value / 100;
+                    const r=parseInt(h.slice(1,3),16), g=parseInt(h.slice(3,5),16), b=parseInt(h.slice(5,7),16);
+                    el('bgLayer').style.backgroundColor = `rgba(${r},${g},${b},${a})`;
+                };
+                el('bgColor').addEventListener('input', updateBg);
+                el('bgAlpha').addEventListener('input', updateBg);
+
+                // Ratio
+                el('inWidth').onchange = () => { if(this.sourceImage) el('inHeight').value = Math.round(el('inWidth').value / (this.sourceImage.width/this.sourceImage.height))||1; };
+                el('inHeight').onchange = () => { if(this.sourceImage) el('inWidth').value = Math.round(el('inHeight').value * (this.sourceImage.width/this.sourceImage.height))||1; };
+            },
+
+            log(msg, type='pending') {
+                const p = document.getElementById('logPanel');
+                const div = document.createElement('div');
+                div.className = `log-line ${type}`;
+                div.innerText = `> ${msg}`;
+                p.prepend(div);
+            },
+
+            handleFile(file) {
+                if(!file) return;
+                this.fileName = file.name.split('.')[0].replace(/\W/g, '_');
+                const r = new FileReader();
+                r.onload = (e) => this.loadImage(e.target.result);
+                r.readAsDataURL(file);
+            },
+
+            loadUrl() {
+                const u = document.getElementById('urlInput').value.trim();
+                if(u) this.loadImage('https://corsproxy.io/?' + encodeURIComponent(u));
+            },
+
+            loadImage(src) {
+                this.log("Lade Bild...", "active");
+                const img = new Image();
+                img.crossOrigin = "Anonymous";
+                img.onload = () => {
+                    this.sourceImage = img;
+                    let w=img.width, h=img.height;
+                    // Auto-Scale Logic: Keep pixel art logic but suggest reasonable size
+                    if(w>128||h>128) { const r=w/h; if(w>h){w=128;h=Math.round(128/r)}else{h=128;w=Math.round(128*r)} }
+                    document.getElementById('inWidth').value = w;
+                    document.getElementById('inHeight').value = h;
+                    document.getElementById('statusText').innerText = `Geladen: ${img.width}x${img.height}`;
+                    document.getElementById('procBtn').disabled = false;
+                    this.log("Bild geladen. Bereit für Analyse.", "done");
+                };
+                img.onerror = () => this.log("Fehler beim Laden.", "error");
+                img.src = src;
+            },
+
+            startPipeline() {
+                if(!this.sourceImage) return;
+                document.getElementById('procBtn').disabled = true;
+                this.log("Starte Integrity Pipeline...", "active");
+
+                const w = parseInt(document.getElementById('inWidth').value);
+                const h = parseInt(document.getElementById('inHeight').value);
+                const cvs = document.createElement('canvas');
+                cvs.width = w; cvs.height = h;
+                const ctx = cvs.getContext('2d');
+                ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+                ctx.drawImage(this.sourceImage, 0, 0, w, h);
+                
+                const pixels = ctx.getImageData(0,0,w,h).data.buffer;
+
+                this.worker.postMessage({
+                    pixels, width: w, height: h,
+                    config: {
+                        targetW: w, targetH: h,
+                        sensitivity: parseInt(document.getElementById('sensitivity').value),
+                        contrast: parseInt(document.getElementById('contrast').value),
+                        autoTrim: document.getElementById('autoTrim').checked
+                    }
+                }, [pixels]);
+            },
+
+            updateProgress(val) {
+                document.getElementById('progFill').style.width = val + '%';
+            },
+
+            async runGenerators(result) {
+                this.vectorData = result;
+                document.getElementById('progFill').style.width = '100%';
+                
+                // Feedback Size
+                const w = result.meta.w; 
+                const h = result.meta.h;
+                this.log(`Optimiert auf: ${w}x${h} Pixel`, "done");
+
+                // Pre-generate SVG for preview
+                this.outputs['svg'] = Generators.svg(result, this.fileName);
+                document.getElementById('svgContainer').innerHTML = this.outputs['svg'];
+
+                // Loop through formats async to not freeze UI
+                for (const fmt of FORMATS) {
+                    await new Promise(r => requestAnimationFrame(r));
+                    try {
+                        const code = Generators[fmt.id](result, this.fileName);
+                        this.outputs[fmt.id] = code;
+                        document.getElementById(`out-${fmt.id}`).value = code;
+                    } catch(e) {
+                        this.log(`Error ${fmt.id}: ${e.message}`, "error");
+                    }
+                }
+
+                document.getElementById('procBtn').disabled = false;
+                setTimeout(() => document.getElementById('progFill').style.width = '0%', 500);
+            },
+
+            switchTab(id) {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.view-container').forEach(c => c.classList.remove('active'));
+                
+                if(id === 'preview') {
+                    document.querySelector('.tab-btn').classList.add('active'); // First one
+                    document.getElementById('view-preview').classList.add('active');
+                } else {
+                    document.getElementById(`tab-${id}`).classList.add('active');
+                    document.getElementById(`view-${id}`).classList.add('active');
+                }
+            },
+
+            copy(id) {
+                const el = document.getElementById(`out-${id}`);
+                el.select(); document.execCommand('copy');
+                this.log(`${id} kopiert.`);
+            },
+
+            download(id) {
+                if(!this.vectorData) return;
+                const fmt = FORMATS.find(f => f.id === id);
+                
+                if(id === 'pdf') {
+                    const f = document.getElementById('pdfFrame');
+                    const d = f.contentWindow.document;
+                    d.open();
+                    d.write(`<html><head><style>@page{size:auto;margin:0mm}body{display:flex;justify-content:center;align-items:center;height:100vh;margin:0}</style></head><body>${this.outputs['svg']}</body></html>`);
+                    d.close();
+                    f.contentWindow.focus();
+                    setTimeout(() => f.contentWindow.print(), 500);
+                    return;
+                }
+
+                const blob = new Blob([this.outputs[id]], {type: fmt.mime});
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = `${this.fileName}.${fmt.ext}`;
+                document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            }
+        };
+
+        // --- CODE GENERATORS ---
+        const Generators = {
+            svg: (r, n) => {
+                const p = r.layers.map(l => `<path fill="${l.color}" d="${l.path}"/>`).join('');
+                return `<?xml version="1.0" encoding="UTF-8" standalone="no"?>\n<svg width="${r.meta.w}" height="${r.meta.h}" viewBox="0 0 ${r.meta.w} ${r.meta.h}" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">\n${p}\n</svg>`;
+            },
+            
+            base64: (r, n) => {
+                const s = Generators.svg(r, n);
+                const b64 = window.btoa(unescape(encodeURIComponent(s)));
+                return `data:image/svg+xml;base64,${b64}`;
+            },
+
+            ai: (r, n) => {
+                const g = r.layers.map((l, i) => `<g id="Layer_${i+1}" data-name="${l.color}"><path fill="${l.color}" d="${l.path}"/></g>`).join('');
+                return `<?xml version="1.0" encoding="UTF-8"?>\n<svg width="${r.meta.w}" height="${r.meta.h}" viewBox="0 0 ${r.meta.w} ${r.meta.h}" xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape">\n${g}\n</svg>`;
+            },
+
+            eps: (r, n) => {
+                let s = `%!PS-Adobe-3.0 EPSF-3.0\n%%BoundingBox: 0 0 ${r.meta.w} ${r.meta.h}\n%%Title: ${n}\n1 -1 scale 0 -${r.meta.h} translate\n`;
+                const re = /M(\d+),(\d+)h(\d+)/g;
+                r.layers.forEach(l => {
+                    const c = l.color;
+                    const cr = (parseInt(c.slice(1,3),16)/255).toFixed(3);
+                    const cg = (parseInt(c.slice(3,5),16)/255).toFixed(3);
+                    const cb = (parseInt(c.slice(5,7),16)/255).toFixed(3);
+                    s += `${cr} ${cg} ${cb} setrgbcolor\n`;
+                    let m; while((m=re.exec(l.path))!==null) s+=`${m[1]} ${m[2]} ${m[3]} 1 rectfill\n`;
+                });
+                return s + "showpage\n%%EOF";
+            },
+
+            dxf: (r) => {
+                let s = "0\nSECTION\n2\nHEADER\n9\n$ACADVER\n1\nAC1009\n0\nENDSEC\n0\nSECTION\n2\nENTITIES\n";
+                const re = /M(\d+),(\d+)h(\d+)/g;
+                r.layers.forEach((l, i) => {
+                    let m; 
+                    const aci = (i % 255) + 1;
+                    while((m=re.exec(l.path))!==null) {
+                        const x=parseInt(m[1]), y=parseInt(m[2]), w=parseInt(m[3]);
+                        s += `0\nSOLID\n8\n${l.color}\n62\n${aci}\n10\n${x}\n20\n${-y}\n30\n0\n11\n${x+w}\n21\n${-y}\n31\n0\n12\n${x}\n22\n${-(y+1)}\n32\n0\n13\n${x+w}\n23\n${-(y+1)}\n33\n0\n`;
+                    }
+                });
+                return s + "0\nENDSEC\n0\nEOF";
+            },
+
+            html: (r, n) => {
+                const s = Generators.svg(r, n);
+                // Ensure the BODY of the HTML output does NOT replicate the dark background issue
+                return `<!DOCTYPE html>\n<html lang="de">\n<head>\n<meta charset="UTF-8">\n<title>${n}</title>\n<style>\nbody{margin:0;display:grid;place-items:center;min-height:100vh;background:transparent; /* Force Transparent */}\nsvg{max-width:90vmin;height:auto;filter:drop-shadow(0 0 10px rgba(0,0,0,0.1));}\n</style>\n</head>\n<body>\n${s}\n</body>\n</html>`;
+            },
+
+            xhtml: (r, n) => {
+                const s = Generators.svg(r, n);
+                return `<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">\n<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="de" lang="de">\n<head><title>${n}</title></head>\n<body>\n<div>\n${s}\n</div>\n</body>\n</html>`;
+            },
+
+            vanilla: (r, n) => `
+export class PixelArt {
+    constructor(container) {
+        const svgNS = "http://www.w3.org/2000/svg";
+        this.svg = document.createElementNS(svgNS, "svg");
+        this.svg.setAttribute("viewBox", "0 0 ${r.meta.w} ${r.meta.h}");
+        this.svg.style.shapeRendering = "crispEdges";
+        
+        const layers = ${JSON.stringify(r.layers)};
+        layers.forEach(l => {
+            const p = document.createElementNS(svgNS, "path");
+            p.setAttribute("fill", l.color);
+            p.setAttribute("d", l.path);
+            this.svg.appendChild(p);
+        });
+        
+        container.appendChild(this.svg);
+    }
+}`,
+
+            tailwind: (r) => {
+                const b64 = Generators.base64(r, 'icon');
+                return `<!-- Tailwind v4 -->\n<div class="w-[${r.meta.w}px] h-[${r.meta.h}px] bg-[url('${b64}')] bg-cover bg-no-repeat antialiased image-pixelated"></div>`;
+            },
+
+            json: (r) => JSON.stringify(r, null, 2),
+
+            xml: (r) => `<?xml version="1.0" encoding="UTF-8"?>\n<pixelAsset>\n  <meta>\n    <width>${r.meta.w}</width>\n    <height>${r.meta.h}</height>\n  </meta>\n  <layers>\n${r.layers.map(l=>`    <layer color="${l.color}">${l.path}</layer>`).join('\n')}\n  </layers>\n</pixelAsset>`,
+
+            sql: (r, n) => {
+                const json = JSON.stringify(r).replace(/'/g, "''");
+                return `-- ANSI SQL-92\nCREATE TABLE IF NOT EXISTS assets (id SERIAL PRIMARY KEY, name VARCHAR(255), width INT, height INT, data TEXT);\nINSERT INTO assets (name, width, height, data) VALUES ('${n}', ${r.meta.w}, ${r.meta.h}, '${json}');`;
+            },
+
+            php: (n) => `<?php\n// PHP 8.5+ Class\nreadonly class PixelIcon_${n} {\n    public function render(): string {\n        return <<<'HTML'\n${Generators.svg({meta:{w:32,h:32},layers:[]},n)}\nHTML;\n    }\n}`,
+
+            python: (n) => `# Python 3.11\nfrom dataclasses import dataclass\n@dataclass\nclass PixelIcon:\n    name: str = "${n}"\n    def to_svg(self) -> str:\n        return """${Generators.svg({meta:{w:1,h:1},layers:[]},n)}"""`,
+
+            rust: () => `// Rust Wasm (lib.rs)\nuse wasm_bindgen::prelude::*;\n#[wasm_bindgen]\npub fn get_icon() -> String {\n    String::from(r#"<svg>...</svg>"#)\n}`,
+
+            wasm_js: () => `import init from './pkg.js';\ninit().then(() => console.log("Module Loaded"));`
+        };
+
+        App.init();
+    </script>
+</body>
+</html>
