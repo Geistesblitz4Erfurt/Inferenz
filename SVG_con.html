@@ -3,35 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pixel Architect: INTEGRITY LAB AI</title>
+    <title>Pixel Architect: MONOLITH V13.3 (Print Button)</title>
+    
+    <!-- PDF Generation - NUR jsPDF (zuverlässig!) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
     <style>
         :root {
             --bg: #0d1117; --panel: #161b22; --border: #30363d;
-            --primary: #2f81f7; --text: #e6edf3; --text-dim: #8b949e;
-            --code-bg: #0d1117; --success: #238636; --error: #da3633; --warning: #d29922;
+            --primary: #2ea043; --text: #e6edf3; --text-dim: #8b949e;
+            --code-bg: #0d1117; --success: #238636; --error: #da3633;
         }
         * { box-sizing: border-box; outline: none; }
         body {
-            background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            background: var(--bg); color: var(--text); font-family: monospace;
             margin: 0; padding: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden;
         }
 
         /* HEADER */
         header { 
-            padding: 15px 20px; border-bottom: 1px solid var(--border); background: var(--panel); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+            padding: 15px 20px; border-bottom: 1px solid var(--border); background: var(--panel); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; font-family: -apple-system, sans-serif;
         }
         h1 { margin: 0; font-size: 1.2rem; font-weight: 600; letter-spacing: 0.5px; }
-        .tag { font-size: 0.7rem; padding: 2px 8px; border-radius: 10px; border: 1px solid var(--primary); color: var(--primary); margin-left: 10px; text-transform: uppercase; }
+        .tag { font-size: 0.7rem; padding: 2px 8px; border-radius: 10px; border: 1px solid var(--primary); color: var(--primary); margin-left: 10px; text-transform: uppercase; font-weight: bold; }
 
-        /* MAIN LAYOUT */
-        .layout { display: grid; grid-template-columns: 320px 1fr; height: calc(100vh - 60px); overflow: hidden; }
+        /* LAYOUT */
+        .layout { display: grid; grid-template-columns: 340px 1fr; height: calc(100vh - 60px); overflow: hidden; }
         
         /* SIDEBAR */
         .sidebar { border-right: 1px solid var(--border); padding: 20px; overflow-y: auto; background: var(--bg); display: flex; flex-direction: column; gap: 20px; }
         
-        /* INPUTS */
         .input-group { margin-bottom: 15px; }
-        label { display: block; font-size: 0.7rem; font-weight: bold; color: var(--text-dim); margin-bottom: 5px; text-transform: uppercase; }
+        label { display: block; font-size: 0.7rem; font-weight: bold; color: var(--text-dim); margin-bottom: 5px; text-transform: uppercase; font-family: -apple-system, sans-serif; }
         input[type="text"], input[type="number"] {
             width: 100%; background: #010409; border: 1px solid var(--border); color: var(--text); padding: 8px; border-radius: 6px; font-family: monospace;
         }
@@ -40,68 +43,62 @@
         .drop-zone {
             border: 2px dashed var(--border); border-radius: 6px; padding: 30px; text-align: center; cursor: pointer; transition: 0.2s; background: rgba(255,255,255,0.01);
         }
-        .drop-zone:hover { border-color: var(--primary); background: rgba(47, 129, 247, 0.1); }
+        .drop-zone:hover { border-color: var(--primary); background: rgba(46, 160, 67, 0.15); }
 
-        .btn { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--panel); color: var(--text); cursor: pointer; font-weight: 600; transition: 0.2s; }
+        .btn { width: 100%; padding: 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--panel); color: var(--text); cursor: pointer; font-weight: 600; transition: 0.2s; font-size: 0.85rem; font-family: -apple-system, sans-serif; }
         .btn:hover { background: var(--border); }
-        .btn-primary { background: var(--success); border-color: rgba(255,255,255,0.1); color: white; }
-        .btn-primary:hover:not(:disabled) { background: #2ea043; }
+        .btn-primary { background: var(--primary); border-color: rgba(255,255,255,0.1); color: white; }
+        .btn-primary:hover:not(:disabled) { background: #3fb950; }
         .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(1); }
 
-        .toggle-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+        .toggle-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; font-family: -apple-system, sans-serif; }
         .toggle-label { font-size: 0.8rem; color: var(--text); }
 
         /* MAIN CONTENT */
         .main-view { display: flex; flex-direction: column; height: 100%; overflow: hidden; background: #010409; position: relative; }
         
-        /* TABS */
         .tabs { display: flex; overflow-x: auto; background: var(--panel); border-bottom: 1px solid var(--border); scrollbar-width: none; flex-shrink: 0; }
         .tab-btn {
-            padding: 12px 16px; background: transparent; border: none; color: var(--text-dim); cursor: pointer; font-size: 0.8rem; white-space: nowrap; border-right: 1px solid var(--border); border-bottom: 2px solid transparent;
+            padding: 12px 16px; background: transparent; border: none; color: var(--text-dim); cursor: pointer; font-size: 0.8rem; white-space: nowrap; border-right: 1px solid var(--border); border-bottom: 2px solid transparent; font-family: -apple-system, sans-serif;
         }
         .tab-btn:hover { color: var(--text); background: rgba(255,255,255,0.02); }
         .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); background: var(--bg); font-weight: bold; }
 
-        /* VIEW CONTAINER */
         .view-container { flex: 1; position: relative; display: none; flex-direction: column; overflow: hidden; }
         .view-container.active { display: flex; }
 
-        .toolbar { padding: 10px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: var(--bg); flex-shrink: 0; }
+        .toolbar { padding: 10px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: var(--bg); flex-shrink: 0; font-family: -apple-system, sans-serif; }
         .std-badge { font-family: monospace; font-size: 0.75rem; color: var(--success); background: rgba(35, 134, 54, 0.15); padding: 2px 8px; border-radius: 4px; }
 
         textarea {
             flex: 1; width: 100%; border: none; background: #0d1117; color: #e6edf3; padding: 20px; font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12px; resize: none; outline: none; line-height: 1.5;
         }
 
-        /* PREVIEW STAGE */
         .preview-stage {
             flex: 1; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden;
             background-image: linear-gradient(45deg, #161b22 25%, transparent 25%), linear-gradient(-45deg, #161b22 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #161b22 75%), linear-gradient(-45deg, transparent 75%, #161b22 75%);
             background-size: 20px 20px;
-            min-height: 300px;
         }
         .preview-stage svg { max-width: 90%; max-height: 80vh; z-index: 2; filter: drop-shadow(0 10px 30px rgba(0,0,0,0.5)); image-rendering: pixelated; }
         #bgLayer { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
 
-        /* LOG */
         #logPanel { font-family: monospace; font-size: 0.7rem; color: var(--text-dim); max-height: 150px; overflow-y: auto; padding: 10px; background: #010409; border-top: 1px solid var(--border); }
-        .log-line { margin-bottom: 4px; }
-        .log-line.active { color: var(--primary); }
-        .log-line.done { color: var(--success); }
-        .log-line.error { color: var(--error); }
+        .log-line { margin-bottom: 4px; border-left: 2px solid transparent; padding-left: 5px; }
+        .log-line.active { border-left-color: var(--primary); color: var(--text); }
+        .log-line.error { border-left-color: var(--error); color: var(--error); }
 
         .progress-bar { height: 3px; background: var(--border); width: 100%; position: absolute; top: 0; left: 0; z-index: 10; }
         .progress-fill { height: 100%; width: 0%; background: var(--success); transition: width 0.1s linear; }
 
-        /* RESPONSIVE CSS */
+        /* MOBILE OPTIMIZATION */
         @media (max-width: 900px) {
             body { height: auto; min-height: 100vh; overflow-y: auto; display: block; }
             .layout { display: flex; flex-direction: column; height: auto; overflow: visible; }
             .sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--border); height: auto; padding-bottom: 30px; }
-            .main-view { height: 80vh; min-height: 500px; border-top: 5px solid var(--bg); }
-            .toolbar { flex-wrap: wrap; gap: 10px; padding: 15px; }
-            .toolbar > div { width: 100%; display: flex; justify-content: space-between; }
-            .toolbar button { flex: 1; text-align: center; }
+            .main-view { height: 70vh; min-height: 500px; border-top: 5px solid var(--bg); }
+            .toolbar { flex-wrap: wrap; gap: 10px; padding: 10px; }
+            .toolbar > div { width: 100%; display: flex; justify-content: flex-end; gap: 5px; }
+            .toolbar button { flex: 1; text-align: center; font-size: 0.75rem; }
             header { flex-direction: column; align-items: flex-start; gap: 5px; }
             header div { align-self: flex-end; }
         }
@@ -110,8 +107,8 @@
 <body>
 
     <header>
-        <h1>Pixel Architect <span class="tag">Smart Crop Engine</span></h1>
-        <div style="font-size:0.8rem; color:var(--text-dim)">V4.1 • Auto-Trim Transparency</div>
+        <h1>Pixel Architect <span class="tag">MONOLITH</span></h1>
+        <div style="font-size:0.8rem; color:var(--text-dim)">V13.3 • Force Print • Vector Safe</div>
     </header>
 
     <div class="layout">
@@ -120,13 +117,13 @@
         <aside class="sidebar">
             <div class="drop-zone" id="dropZone">
                 <div style="font-size:2rem; margin-bottom:10px;">📂</div>
-                <div id="statusText">Bild Importieren</div>
+                <div id="statusText">Import Image</div>
                 <input type="file" id="fileInput" hidden accept="image/*">
             </div>
             
             <div style="display:flex; gap:5px;">
                 <input type="text" id="urlInput" placeholder="https://...">
-                <button class="btn" style="width:auto;" onclick="App.loadUrl()">Laden</button>
+                <button class="btn" style="width:auto;" onclick="App.loadUrl()">Load</button>
             </div>
 
             <hr style="border:0; border-top:1px solid var(--border); width:100%;">
@@ -134,44 +131,40 @@
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
                 <div class="input-group">
                     <label>Breite (px)</label>
-                    <input type="number" id="inWidth" value="32">
+                    <input type="number" id="inWidth" value="128">
                 </div>
                 <div class="input-group">
                     <label>Höhe (px)</label>
-                    <input type="number" id="inHeight" value="32">
+                    <input type="number" id="inHeight" value="128">
                 </div>
             </div>
 
             <div class="input-group">
-                <label>Maximaler Kontrast (Details)</label>
-                <!-- Default 20 für mehr Schärfe -->
-                <input type="range" id="contrast" min="-50" max="150" value="20">
+                <label>Kontrast (Standard: 0)</label>
+                <input type="range" id="contrast" min="-50" max="50" value="0">
             </div>
 
             <div class="input-group">
-                <label>Farb-Toleranz (Artifact Cleaner)</label>
-                <input type="range" id="sensitivity" min="0" max="40" value="5">
+                <label>Farb-Filter (Standard: 0)</label>
+                <input type="range" id="sensitivity" min="0" max="40" value="0">
             </div>
 
             <hr style="border:0; border-top:1px solid var(--border); width:100%;">
             
             <div class="toggle-row">
-                <span class="toggle-label">Smart Background Removal</span>
-                <input type="checkbox" id="smartBg" checked disabled> <!-- Always ON -->
+                <span class="toggle-label" style="font-weight:bold;">Smart Background</span>
+                <input type="checkbox" id="smartBg" checked disabled>
             </div>
 
             <div class="toggle-row">
-                <span class="toggle-label" style="color:var(--primary);">Auto-Trim (Zuschneiden)</span>
+                <span class="toggle-label" style="font-weight:bold; color:var(--primary);">Auto-Trim (Zuschneiden)</span>
                 <input type="checkbox" id="autoTrim" checked>
-            </div>
-            <div style="font-size:0.7rem; color:var(--text-dim); margin-bottom:10px;">
-                Schneidet leeren transparenten Raum weg. Das SVG wird exakt so groß wie das Motiv.
             </div>
 
             <hr style="border:0; border-top:1px solid var(--border); width:100%;">
 
             <div style="display:flex; align-items:center; gap:10px; margin-bottom:20px;">
-                <label style="margin:0;">Vorschau BG:</label>
+                <label style="margin:0;">Preview BG:</label>
                 <input type="color" id="bgColor" value="#161b22">
                 <input type="range" id="bgAlpha" min="0" max="100" value="0" style="flex:1">
             </div>
@@ -180,7 +173,6 @@
             
             <div id="logPanel">
                 <div class="log-line">System bereit.</div>
-                <div class="log-line" style="color:var(--success)">Regel: Hintergrund immer transparent.</div>
             </div>
         </aside>
 
@@ -193,19 +185,17 @@
             </div>
 
             <div id="viewsRoot" style="flex:1; position:relative; overflow:hidden; display:flex; flex-direction:column;">
-                <!-- Code views injected here -->
-                
-                <!-- PREVIEW (Static) -->
+                <!-- PREVIEW -->
                 <div id="view-preview" class="view-container active">
                     <div class="preview-stage">
                         <div id="bgLayer"></div>
-                        <div id="svgContainer" style="color:var(--text-dim)">Warte auf Daten...</div>
+                        <div id="svgContainer" style="color:var(--text-dim)">Warte auf Start...</div>
                     </div>
                     <div class="toolbar" style="border-top:1px solid var(--border); border-bottom:none;">
                         <span class="std-badge" style="display:none;">PREVIEW</span>
                         <div style="display:flex; gap:10px; width:100%;">
-                            <button class="btn" style="flex:1;" onclick="App.download('svg')">SVG</button>
-                            <button class="btn" style="flex:1;" onclick="App.download('pdf')">PDF</button>
+                            <button class="btn" style="flex:1;" onclick="App.download('svg')">SVG Download</button>
+                            <button class="btn btn-primary" style="flex:1;" onclick="App.downloadPDF()">📄 PDF Speichern</button>
                             <button class="btn" style="flex:1;" onclick="App.download('html')">Bundle</button>
                         </div>
                     </div>
@@ -214,231 +204,230 @@
         </main>
     </div>
 
-    <!-- Hidden PDF Frame -->
-    <iframe id="pdfFrame" style="position:fixed; top:-9999px;"></iframe>
-
-    <!-- WORKER: THE LOGIC BRAIN -->
+    <!-- WORKER: RETURNS RAW DATA (NO LAZY STRINGS) -->
     <script id="worker-code" type="javascript/worker">
+        const toHex = (r, g, b) => "#" + ((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1).toUpperCase();
+        const snap = (v, s) => s <= 0 ? v : Math.min(255, Math.round(v / Math.max(1, s*4)) * Math.max(1, s*4));
+
         self.onmessage = function(e) {
             try {
                 const { pixels: buffer, width, height, config } = e.data;
-                const { targetW, targetH, sensitivity, contrast, autoTrim } = config;
-                
-                // 1. Data Preparation
+                const { sensitivity, contrast, autoTrim } = config;
                 const pixels = new Uint8ClampedArray(buffer);
-                
-                // Helpers
-                const toHex = (r, g, b) => "#" + ((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1);
                 const contrastFactor = (259 * (contrast + 255)) / (255 * (259 - contrast));
-                const snap = (v, s) => s <= 0 ? v : Math.min(255, Math.round(v / Math.max(1, s*4)) * Math.max(1, s*4));
-
-                // Processed Data
-                const procData = new Uint8Array(targetW * targetH * 4);
-                const ratioX = width / targetW;
-                const ratioY = height / targetH;
-
-                // --- PHASE 1: Downsampling & Contrast ---
-                for(let y = 0; y < targetH; y++) {
-                    for(let x = 0; x < targetW; x++) {
-                        const sx = Math.floor((x + 0.5) * ratioX);
-                        const sy = Math.floor((y + 0.5) * ratioY);
-                        const srcI = (sy * width + sx) * 4;
-                        const destI = (y * targetW + x) * 4;
-
-                        let r = pixels[srcI], g = pixels[srcI+1], b = pixels[srcI+2], a = pixels[srcI+3];
-
-                        // Contrast
-                        if(contrast !== 0 && a > 20) {
-                            r = Math.max(0, Math.min(255, contrastFactor * (r - 128) + 128));
-                            g = Math.max(0, Math.min(255, contrastFactor * (g - 128) + 128));
-                            b = Math.max(0, Math.min(255, contrastFactor * (b - 128) + 128));
-                        }
-                        
-                        // Sensitivity (Cleaner colors)
-                        if(sensitivity > 0 && a > 20) {
-                            r = snap(r, sensitivity);
-                            g = snap(g, sensitivity);
-                            b = snap(b, sensitivity);
-                        }
-
-                        procData[destI] = r;
-                        procData[destI+1] = g;
-                        procData[destI+2] = b;
-                        procData[destI+3] = a; 
-                    }
-                }
-
-                // --- PHASE 2: AGGRESSIVE FLOOD FILL (Logic Generator) ---
-                const isBgMap = new Uint8Array(targetW * targetH); // 0 = Content, 1 = BG
                 
-                // Always run Smart BG logic
-                const r0 = procData[0], g0 = procData[1], b0 = procData[2];
-                // Increase tolerance slightly to catch jpeg artifacts
-                const tolerance = 20 + (sensitivity * 2); 
-
-                const queue = [];
-                const visited = new Uint8Array(targetW * targetH);
-
-                const pushIfMatch = (x, y) => {
-                    const idx = (y * targetW + x) * 4;
-                    // Strict check against corners
-                    if(Math.abs(procData[idx] - r0) < tolerance && 
-                       Math.abs(procData[idx+1] - g0) < tolerance && 
-                       Math.abs(procData[idx+2] - b0) < tolerance) {
-                        queue.push(x, y);
-                        visited[y * targetW + x] = 1;
-                        isBgMap[y * targetW + x] = 1;
-                    }
-                };
-
-                // Check all 4 corners
-                pushIfMatch(0, 0);
-                pushIfMatch(targetW - 1, 0);
-                pushIfMatch(0, targetH - 1);
-                pushIfMatch(targetW - 1, targetH - 1);
-
-                let head = 0;
-                while(head < queue.length) {
-                    const cx = queue[head++];
-                    const cy = queue[head++];
-                    const neighbors = [[cx+1, cy], [cx-1, cy], [cx, cy+1], [cx, cy-1]];
-
-                    for(const [nx, ny] of neighbors) {
-                        if(nx >= 0 && nx < targetW && ny >= 0 && ny < targetH) {
-                            const nIdx = ny * targetW + nx;
-                            if(!visited[nIdx]) {
-                                const pIdx = nIdx * 4;
-                                if(Math.abs(procData[pIdx] - r0) < tolerance && 
-                                   Math.abs(procData[pIdx+1] - g0) < tolerance && 
-                                   Math.abs(procData[pIdx+2] - b0) < tolerance) {
-                                    visited[nIdx] = 1;
-                                    isBgMap[nIdx] = 1;
-                                    queue.push(nx, ny);
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // --- PHASE 3: LOGICAL TRIMMING (Finding the Content) ---
-                let minX = targetW, maxX = -1, minY = targetH, maxY = -1;
+                const bgR = pixels[0], bgG = pixels[1], bgB = pixels[2];
+                const tol = 15 + sensitivity;
+                
+                const validMap = new Uint8Array(width * height);
+                let minX = width, maxX = 0, minY = height, maxY = 0;
                 let hasContent = false;
 
-                for(let y = 0; y < targetH; y++) {
-                    for(let x = 0; x < targetW; x++) {
-                        const i = y * targetW + x;
-                        const alpha = procData[i*4 + 3];
-                        
-                        // Pixel is VALID if alpha > 20 AND NOT marked as BG
-                        if(alpha > 20 && isBgMap[i] === 0) {
-                            if(x < minX) minX = x;
-                            if(x > maxX) maxX = x;
-                            if(y < minY) minY = y;
-                            if(y > maxY) maxY = y;
-                            hasContent = true;
-                        }
+                for(let i=0; i<width*height; i++) {
+                    const idx = i*4;
+                    const r = pixels[idx], g = pixels[idx+1], b = pixels[idx+2], a = pixels[idx+3];
+                    
+                    let isBg = false;
+                    if(Math.abs(r-bgR)<tol && Math.abs(g-bgG)<tol && Math.abs(b-bgB)<tol) isBg = true;
+                    
+                    if(a > 20 && !isBg) {
+                        validMap[i] = 1;
+                        const x = i % width;
+                        const y = Math.floor(i / width);
+                        if(x < minX) minX = x; if(x > maxX) maxX = x;
+                        if(y < minY) minY = y; if(y > maxY) maxY = y;
+                        hasContent = true;
                     }
                 }
 
-                // If nothing found, return empty
                 if(!hasContent) {
-                   self.postMessage({ type: 'done', result: { meta: {w:targetW, h:targetH}, colors: [], layers: [] } });
-                   return;
+                    self.postMessage({ type: 'done', result: { meta: {w:width, h:height}, rects: {}, grid: [] } });
+                    return;
                 }
 
-                // Calculate NEW Dimensions based on AutoTrim
-                let finalX = 0, finalY = 0, finalW = targetW, finalH = targetH;
-                
-                if(autoTrim) {
-                    finalX = minX;
-                    finalY = minY;
-                    finalW = maxX - minX + 1;
-                    finalH = maxY - minY + 1;
-                }
+                const startX = autoTrim ? minX : 0;
+                const startY = autoTrim ? minY : 0;
+                const finalW = autoTrim ? (maxX - minX + 1) : width;
+                const finalH = autoTrim ? (maxY - minY + 1) : height;
 
-                // --- PHASE 4: VECTOR GENERATION (Relative to Crop) ---
-                const colorMap = {};
-                const palette = new Set();
+                // RAW DATA ACCUMULATOR
+                const rectData = {};
                 
-                self.postMessage({ type: 'progress', val: 50 });
+                // VISUAL GRID for ASCII
+                const gridData = new Array(finalW * finalH).fill(null);
 
-                // Loop ONLY through the crop area
                 for(let y = 0; y < finalH; y++) {
+                    if(y % 10 === 0) self.postMessage({ type: 'progress', val: (y/finalH)*100 });
                     let currentHex = null;
-                    let startX = -1;
-
-                    // Source coordinate on original grid
-                    const srcY = y + finalY;
+                    let runStart = -1;
+                    const srcY = y + startY;
 
                     for(let x = 0; x < finalW; x++) {
-                        const srcX = x + finalX;
-                        const i = srcY * targetW + srcX;
-                        
+                        const srcX = x + startX;
+                        const i = srcY * width + srcX;
                         let hex = null;
-                        
-                        // Safety check
-                        if(srcX >= 0 && srcX < targetW && srcY >= 0 && srcY < targetH) {
-                            // Logic: Is this pixel Content?
-                            if(procData[i*4 + 3] > 20 && isBgMap[i] === 0) {
-                                hex = toHex(procData[i*4], procData[i*4+1], procData[i*4+2]);
+
+                        if(validMap[i] === 1) {
+                            const idx = i * 4;
+                            let r = pixels[idx], g = pixels[idx+1], b = pixels[idx+2];
+                            
+                            if(contrast !== 0) {
+                                r = Math.max(0, Math.min(255, contrastFactor * (r - 128) + 128));
+                                g = Math.max(0, Math.min(255, contrastFactor * (g - 128) + 128));
+                                b = Math.max(0, Math.min(255, contrastFactor * (b - 128) + 128));
                             }
+                            if(sensitivity > 0) {
+                                r = snap(r, sensitivity); g = snap(g, sensitivity); b = snap(b, sensitivity);
+                            }
+                            hex = toHex(r, g, b);
+                            
+                            gridData[y * finalW + x] = hex;
                         }
 
                         if(hex !== currentHex) {
                             if(currentHex) {
-                                if(!colorMap[currentHex]) colorMap[currentHex] = [];
-                                // Path is generated at (x,y) which is 0-based for the new SVG
-                                colorMap[currentHex].push(`M${startX},${y}h${x-startX}v1h-${x-startX}z`);
+                                if(!rectData[currentHex]) rectData[currentHex] = [];
+                                rectData[currentHex].push([runStart, y, x - runStart]);
                             }
                             currentHex = hex;
-                            startX = x;
-                            if(hex) palette.add(hex);
+                            runStart = x;
                         }
                     }
                     if(currentHex) {
-                        if(!colorMap[currentHex]) colorMap[currentHex] = [];
-                        colorMap[currentHex].push(`M${startX},${y}h${finalW-startX}v1h-${finalW-startX}z`);
+                        if(!rectData[currentHex]) rectData[currentHex] = [];
+                        rectData[currentHex].push([runStart, y, finalW - runStart]);
                     }
                 }
 
-                const sortedColors = Array.from(palette).sort();
                 const result = {
-                    meta: { w: finalW, h: finalH, generated: new Date().toISOString() },
-                    colors: sortedColors,
-                    layers: sortedColors.map(c => ({ color: c, path: colorMap[c].join('') }))
+                    meta: { w: finalW, h: finalH },
+                    rects: rectData,
+                    grid: gridData
                 };
 
                 self.postMessage({ type: 'done', result });
 
-            } catch(err) {
-                self.postMessage({ type: 'error', msg: err.message });
+            } catch(e) {
+                self.postMessage({ type: 'error', msg: e.message });
             }
         };
     </script>
 
     <!-- APP LOGIC -->
     <script>
+        const Generators = {
+            makePath: (rects) => {
+                let d = "";
+                for(let i=0; i<rects.length; i++) {
+                    const r = rects[i];
+                    d += `M${r[0]},${r[1]}h${r[2]}v1h-${r[2]}z`;
+                }
+                return d;
+            },
+
+            svg: (r) => {
+                let paths = "";
+                const colors = Object.keys(r.rects).sort();
+                colors.forEach(c => {
+                    const d = Generators.makePath(r.rects[c]);
+                    paths += `<path fill="${c}" d="${d}"/>`;
+                });
+                return `<?xml version="1.0" encoding="UTF-8"?>\n<svg width="${r.meta.w}" height="${r.meta.h}" viewBox="0 0 ${r.meta.w} ${r.meta.h}" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">\n${paths}\n</svg>`;
+            },
+
+            dxf: (r) => {
+                let s = "0\nSECTION\n2\nHEADER\n9\n$ACADVER\n1\nAC1009\n0\nENDSEC\n0\nSECTION\n2\nENTITIES\n";
+                const colors = Object.keys(r.rects).sort();
+                colors.forEach((c, idx) => {
+                    const rectList = r.rects[c];
+                    const colorCode = (idx % 254) + 1;
+                    rectList.forEach(rect => {
+                        const x = rect[0], y = rect[1], w = rect[2], h = 1;
+                        const y1 = -y, y2 = -(y + h);
+                        s += `0\nSOLID\n8\n${c}\n62\n${colorCode}\n`;
+                        s += `10\n${x}\n20\n${y1}\n`;   
+                        s += `11\n${x+w}\n21\n${y1}\n`; 
+                        s += `12\n${x}\n22\n${y2}\n`;   
+                        s += `13\n${x+w}\n23\n${y2}\n`; 
+                    });
+                });
+                return s + "0\nENDSEC\n0\nEOF";
+            },
+
+            ascii_art: (r) => {
+                let s = "";
+                for(let y=0; y<r.meta.h; y++) {
+                    for(let x=0; x<r.meta.w; x++) {
+                        const c = r.grid[y * r.meta.w + x];
+                        s += c ? "██" : "  ";
+                    }
+                    s += "\n";
+                }
+                return s;
+            },
+
+            svg_ascii: (r) => {
+                const s = Generators.svg(r);
+                const bytes = [];
+                for(let i=0; i<s.length; i++) bytes.push(s.charCodeAt(i));
+                return bytes.join(', ');
+            },
+
+            sql: (r, n) => {
+                const json = JSON.stringify(r.rects).replace(/'/g, "''");
+                return `-- ANSI SQL Compatible\nCREATE TABLE IF NOT EXISTS assets (name VARCHAR(255) PRIMARY KEY, w INT, h INT, data TEXT);\nINSERT INTO assets (name, w, h, data) VALUES ('${n}', ${r.meta.w}, ${r.meta.h}, '${json}');`;
+            },
+
+            php: (r, n) => {
+                const svg = Generators.svg(r);
+                return `<?php\n\nclass Icon_${n} {\n    public static function getSvg(): string {\n        return <<<'SVG'\n${svg}\nSVG;\n    }\n}`;
+            },
+
+            python: (r, n) => {
+                const svg = Generators.svg(r);
+                return `# Python 3.7+\nfrom dataclasses import dataclass\n\n@dataclass\nclass Icon${n}:\n    def to_svg(self) -> str:\n        return """${svg}"""`;
+            },
+
+            rust: (r, n) => {
+                const svg = Generators.svg(r);
+                return `// Rust Wasm\n#[no_mangle]\npub extern "C" fn icon_${n}() -> *const u8 {\n    r#"${svg}"#.as_ptr()\n}`;
+            },
+
+            wasm_js: (r, n) => {
+                const svg = Generators.svg(r);
+                return `// JS Module\nexport const icon_${n} = \`${svg}\`;`;
+            },
+
+            base64: (r) => `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(Generators.svg(r))))}`,
+            html: (r, n) => `<!DOCTYPE html><html><head><style>body{background:#222;display:grid;place-items:center;height:100vh;}svg{max-width:90vmin;}</style></head><body>${Generators.svg(r)}</body></html>`,
+            json: (r) => JSON.stringify(r.rects, null, 2),
+            xml: (r) => {
+                let l = "";
+                for(let c in r.rects) l+=`<layer color="${c}">${Generators.makePath(r.rects[c])}</layer>`;
+                return `<?xml version="1.0"?><asset w="${r.meta.w}" h="${r.meta.h}">${l}</asset>`;
+            },
+            tailwind: (r) => `<div class="w-[${r.meta.w}px] h-[${r.meta.h}px] bg-[url('${Generators.base64(r)}')] bg-cover"></div>`
+        };
+
         const FORMATS = [
-            { id: 'base64', label: 'Base64', std: 'RFC 2397 Data URI', ext: 'txt', mime: 'text/plain' },
-            { id: 'svg', label: 'SVG', std: 'W3C SVG 1.1', ext: 'svg', mime: 'image/svg+xml' },
-            { id: 'ai', label: 'AI', std: 'Adobe Illustrator SVG', ext: 'svg', mime: 'image/svg+xml' },
-            { id: 'eps', label: 'EPS', std: 'PostScript Level 3', ext: 'eps', mime: 'application/postscript' },
-            { id: 'dxf', label: 'DXF', std: 'AutoCAD R12 ASCII', ext: 'dxf', mime: 'application/dxf' },
-            { id: 'html', label: 'HTML', std: 'HTML5 Bundle', ext: 'html', mime: 'text/html' },
-            { id: 'xhtml', label: 'XHTML', std: 'XHTML 1.0 Strict', ext: 'xhtml', mime: 'application/xhtml+xml' },
-            { id: 'vanilla', label: 'Vanilla JS', std: 'ES6 Class', ext: 'js', mime: 'text/javascript' },
-            { id: 'tailwind', label: 'Tailwind 4', std: 'Utility Classes', ext: 'html', mime: 'text/html' },
-            { id: 'json', label: 'JSON', std: 'RFC 8259', ext: 'json', mime: 'application/json' },
-            { id: 'xml', label: 'XML', std: 'W3C XML 1.0', ext: 'xml', mime: 'text/xml' },
-            { id: 'sql', label: 'SQL', std: 'ANSI SQL-92', ext: 'sql', mime: 'text/plain' },
-            { id: 'php', label: 'PHP 8.5', std: 'Typed Class', ext: 'php', mime: 'text/x-php' },
-            { id: 'python', label: 'Python 3.11', std: 'Dataclass', ext: 'py', mime: 'text/x-python' },
-            { id: 'rust', label: 'Rust', std: 'Rust 2021 Wasm', ext: 'rs', mime: 'text/rust' },
-            { id: 'wasm_js', label: 'Wasm JS', std: 'Glue Code', ext: 'js', mime: 'text/javascript' }
+            { id: 'ascii_art', label: 'ASCII Art', std: 'Visual', ext: 'txt', mime: 'text/plain' },
+            { id: 'svg_ascii', label: 'SVG Bytes', std: 'Decimal', ext: 'txt', mime: 'text/plain' },
+            { id: 'svg', label: 'SVG', std: 'W3C 1.1', ext: 'svg', mime: 'image/svg+xml' },
+            { id: 'dxf', label: 'DXF', std: 'AutoCAD', ext: 'dxf', mime: 'application/dxf' },
+            { id: 'sql', label: 'SQL', std: 'ANSI', ext: 'sql', mime: 'text/plain' },
+            { id: 'php', label: 'PHP', std: 'Class', ext: 'php', mime: 'text/x-php' },
+            { id: 'python', label: 'Python', std: 'Dataclass', ext: 'py', mime: 'text/x-python' },
+            { id: 'rust', label: 'Rust', std: 'Wasm', ext: 'rs', mime: 'text/rust' },
+            { id: 'wasm_js', label: 'JS Wasm', std: 'Glue', ext: 'js', mime: 'text/javascript' },
+            { id: 'html', label: 'HTML', std: 'HTML5', ext: 'html', mime: 'text/html' },
+            { id: 'base64', label: 'Base64', std: 'RFC 2397', ext: 'txt', mime: 'text/plain' },
+            { id: 'json', label: 'JSON', std: 'Raw Data', ext: 'json', mime: 'application/json' },
+            { id: 'xml', label: 'XML', std: 'W3C', ext: 'xml', mime: 'text/xml' },
+            { id: 'tailwind', label: 'Tailwind', std: 'V4', ext: 'html', mime: 'text/html' }
         ];
 
         const App = {
-            worker: null, sourceImage: null, vectorData: null, fileName: 'pixel_asset', outputs: {},
+            worker: null, sourceImage: null, vectorData: null, fileName: 'asset', outputs: {},
 
             init() {
                 const blob = new Blob([document.getElementById('worker-code').textContent], {type: "text/javascript"});
@@ -446,9 +435,8 @@
                 this.worker.onmessage = (e) => {
                     if(e.data.type === 'progress') this.updateProgress(e.data.val);
                     else if(e.data.type === 'done') this.runGenerators(e.data.result);
-                    else if(e.data.type === 'error') this.log('Worker Error: ' + e.data.msg, 'error');
+                    else if(e.data.type === 'error') this.log('Error: ' + e.data.msg, 'error');
                 };
-
                 this.buildUI();
                 this.setupEvents();
             },
@@ -456,22 +444,18 @@
             buildUI() {
                 const bar = document.getElementById('tabBar');
                 const root = document.getElementById('viewsRoot');
-                
-                // Static Preview Tab
                 const pBtn = document.createElement('button');
                 pBtn.className = 'tab-btn active'; pBtn.innerText = '👁️ Preview';
                 pBtn.onclick = () => this.switchTab('preview');
                 bar.appendChild(pBtn);
 
                 FORMATS.forEach(fmt => {
-                    // Tab
                     const btn = document.createElement('button');
                     btn.className = 'tab-btn'; btn.innerText = fmt.label;
                     btn.onclick = () => this.switchTab(fmt.id);
                     btn.id = `tab-${fmt.id}`;
                     bar.appendChild(btn);
 
-                    // View
                     const div = document.createElement('div');
                     div.className = 'view-container';
                     div.id = `view-${fmt.id}`;
@@ -479,11 +463,11 @@
                         <div class="toolbar">
                             <span class="std-badge">${fmt.std}</span>
                             <div style="display:flex; gap:10px; width:100%; justify-content:flex-end;">
-                                <button class="btn" style="flex:1; max-width:80px; padding:6px 12px; font-size:0.75rem;" onclick="App.copy('${fmt.id}')">Kopie</button>
+                                <button class="btn" style="flex:1; max-width:80px; padding:6px 12px; font-size:0.75rem;" onclick="App.copy('${fmt.id}')">Copy</button>
                                 <button class="btn" style="flex:1; max-width:80px; padding:6px 12px; font-size:0.75rem;" onclick="App.download('${fmt.id}')">DL</button>
                             </div>
                         </div>
-                        <textarea id="out-${fmt.id}" readonly spellcheck="false">Warte auf Prozess...</textarea>
+                        <textarea id="out-${fmt.id}" readonly spellcheck="false">Waiting...</textarea>
                     `;
                     root.appendChild(div);
                 });
@@ -495,8 +479,9 @@
                 el('dropZone').ondragover = (e) => { e.preventDefault(); };
                 el('dropZone').ondrop = (e) => { e.preventDefault(); this.handleFile(e.dataTransfer.files[0]); };
                 el('fileInput').onchange = (e) => this.handleFile(e.target.files[0]);
+                el('inWidth').onchange = () => { if(this.sourceImage) el('inHeight').value = Math.round(el('inWidth').value / (this.sourceImage.width/this.sourceImage.height))||1; };
+                el('inHeight').onchange = () => { if(this.sourceImage) el('inWidth').value = Math.round(el('inHeight').value * (this.sourceImage.width/this.sourceImage.height))||1; };
                 
-                // BG
                 const updateBg = () => {
                     const h = el('bgColor').value;
                     const a = el('bgAlpha').value / 100;
@@ -505,23 +490,21 @@
                 };
                 el('bgColor').addEventListener('input', updateBg);
                 el('bgAlpha').addEventListener('input', updateBg);
-
-                // Ratio
-                el('inWidth').onchange = () => { if(this.sourceImage) el('inHeight').value = Math.round(el('inWidth').value / (this.sourceImage.width/this.sourceImage.height))||1; };
-                el('inHeight').onchange = () => { if(this.sourceImage) el('inWidth').value = Math.round(el('inHeight').value * (this.sourceImage.width/this.sourceImage.height))||1; };
             },
 
-            log(msg, type='pending') {
+            log(msg, type='active') {
                 const p = document.getElementById('logPanel');
                 const div = document.createElement('div');
-                div.className = `log-line ${type}`;
+                div.className = `log-line`;
+                div.style.borderLeftColor = type === 'error' ? 'var(--error)' : 'var(--primary)';
+                div.style.color = type === 'error' ? 'var(--error)' : 'var(--text)';
                 div.innerText = `> ${msg}`;
                 p.prepend(div);
             },
 
             handleFile(file) {
                 if(!file) return;
-                this.fileName = file.name.split('.')[0].replace(/\W/g, '_');
+                this.fileName = file.name.split('.')[0].replace(/[^a-zA-Z0-9_]/g, '_');
                 const r = new FileReader();
                 r.onload = (e) => this.loadImage(e.target.result);
                 r.readAsDataURL(file);
@@ -533,43 +516,36 @@
             },
 
             loadImage(src) {
-                this.log("Lade Bild...", "active");
                 const img = new Image();
                 img.crossOrigin = "Anonymous";
                 img.onload = () => {
                     this.sourceImage = img;
-                    let w=img.width, h=img.height;
-                    // Auto-Scale Logic: Keep pixel art logic but suggest reasonable size
-                    if(w>128||h>128) { const r=w/h; if(w>h){w=128;h=Math.round(128/r)}else{h=128;w=Math.round(128*r)} }
+                    let w = img.width, h = img.height;
+                    if(w > 512) { w = 512; h = Math.round(512/(img.width/img.height)); }
                     document.getElementById('inWidth').value = w;
                     document.getElementById('inHeight').value = h;
-                    document.getElementById('statusText').innerText = `Geladen: ${img.width}x${img.height}`;
+                    document.getElementById('statusText').innerText = `Loaded: ${img.width}x${img.height}`;
                     document.getElementById('procBtn').disabled = false;
-                    this.log("Bild geladen. Bereit für Analyse.", "done");
+                    this.log(`Loaded ${w}x${h}`);
                 };
-                img.onerror = () => this.log("Fehler beim Laden.", "error");
                 img.src = src;
             },
 
             startPipeline() {
                 if(!this.sourceImage) return;
                 document.getElementById('procBtn').disabled = true;
-                this.log("Starte Integrity Pipeline...", "active");
-
+                this.log("Processing...", "active");
                 const w = parseInt(document.getElementById('inWidth').value);
                 const h = parseInt(document.getElementById('inHeight').value);
                 const cvs = document.createElement('canvas');
                 cvs.width = w; cvs.height = h;
                 const ctx = cvs.getContext('2d');
-                ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+                ctx.imageSmoothingEnabled = false; 
                 ctx.drawImage(this.sourceImage, 0, 0, w, h);
-                
                 const pixels = ctx.getImageData(0,0,w,h).data.buffer;
-
                 this.worker.postMessage({
                     pixels, width: w, height: h,
                     config: {
-                        targetW: w, targetH: h,
                         sensitivity: parseInt(document.getElementById('sensitivity').value),
                         contrast: parseInt(document.getElementById('contrast').value),
                         autoTrim: document.getElementById('autoTrim').checked
@@ -584,28 +560,23 @@
             async runGenerators(result) {
                 this.vectorData = result;
                 document.getElementById('progFill').style.width = '100%';
+                this.log(`Result: ${result.meta.w}x${result.meta.h}px`, "success");
                 
-                // Feedback Size
-                const w = result.meta.w; 
-                const h = result.meta.h;
-                this.log(`Optimiert auf: ${w}x${h} Pixel`, "done");
+                // SVG for Preview
+                const svg = Generators.svg(result);
+                this.outputs['svg'] = svg;
+                document.getElementById('svgContainer').innerHTML = svg;
 
-                // Pre-generate SVG for preview
-                this.outputs['svg'] = Generators.svg(result, this.fileName);
-                document.getElementById('svgContainer').innerHTML = this.outputs['svg'];
-
-                // Loop through formats async to not freeze UI
                 for (const fmt of FORMATS) {
-                    await new Promise(r => requestAnimationFrame(r));
+                    await new Promise(r => setTimeout(r, 0));
                     try {
                         const code = Generators[fmt.id](result, this.fileName);
                         this.outputs[fmt.id] = code;
                         document.getElementById(`out-${fmt.id}`).value = code;
                     } catch(e) {
-                        this.log(`Error ${fmt.id}: ${e.message}`, "error");
+                        this.log(`Error ${fmt.id}: ${e.message}`, 'error');
                     }
                 }
-
                 document.getElementById('procBtn').disabled = false;
                 setTimeout(() => document.getElementById('progFill').style.width = '0%', 500);
             },
@@ -613,9 +584,8 @@
             switchTab(id) {
                 document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
                 document.querySelectorAll('.view-container').forEach(c => c.classList.remove('active'));
-                
                 if(id === 'preview') {
-                    document.querySelector('.tab-btn').classList.add('active'); // First one
+                    document.querySelector('.tab-btn').classList.add('active'); 
                     document.getElementById('view-preview').classList.add('active');
                 } else {
                     document.getElementById(`tab-${id}`).classList.add('active');
@@ -626,130 +596,449 @@
             copy(id) {
                 const el = document.getElementById(`out-${id}`);
                 el.select(); document.execCommand('copy');
-                this.log(`${id} kopiert.`);
+                this.log(`Copied ${id}`);
             },
 
-            download(id) {
-                if(!this.vectorData) return;
-                const fmt = FORMATS.find(f => f.id === id);
-                
-                if(id === 'pdf') {
-                    const f = document.getElementById('pdfFrame');
-                    const d = f.contentWindow.document;
-                    d.open();
-                    d.write(`<html><head><style>@page{size:auto;margin:0mm}body{display:flex;justify-content:center;align-items:center;height:100vh;margin:0}</style></head><body>${this.outputs['svg']}</body></html>`);
-                    d.close();
-                    f.contentWindow.focus();
-                    setTimeout(() => f.contentWindow.print(), 500);
+            // ==========================================
+            // FIX: DIRECT DOCUMENT WRITE + BUTTON
+            // ==========================================
+            // PDF / PRINT SAFE (mit Fallback)
+            // ==========================================
+            printSafe() {
+                if(!this.outputs['svg']) {
+                    alert('Bitte zuerst ein Bild vektorisieren!');
                     return;
                 }
 
-                const blob = new Blob([this.outputs[id]], {type: fmt.mime});
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url; a.download = `${this.fileName}.${fmt.ext}`;
-                document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                this.log('Starte PDF-Export...', 'active');
+
+                // Versuche Pop-up zu öffnen
+                let win;
+                try {
+                    win = window.open("", "_blank", "width=800,height=600");
+                } catch(e) {
+                    console.error('Pop-up error:', e);
+                    win = null;
+                }
+                
+                // Fallback: Wenn Pop-up blockiert, als HTML-Datei downloaden
+                if (!win || win.closed || typeof win.closed == 'undefined') {
+                    this.log('Pop-up blockiert - erstelle druckbare HTML-Datei...', 'active');
+                    
+                    // Erstelle HTML zum Downloaden
+                    const printHTML = this.generatePrintHTML();
+                    const blob = new Blob([printHTML], {type: 'text/html;charset=utf-8'});
+                    const url = URL.createObjectURL(blob);
+                    
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `${this.fileName}_PRINT.html`;
+                    a.style.display = 'none';
+                    document.body.appendChild(a);
+                    a.click();
+                    
+                    setTimeout(() => {
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                    }, 100);
+                    
+                    alert('✓ Druckbare HTML-Datei wurde heruntergeladen!\n\n' +
+                          '📂 Öffnen Sie die Datei im Browser\n' +
+                          '🖨️ Drücken Sie STRG+P (Windows) oder CMD+P (Mac)\n' +
+                          '💾 Wählen Sie "Als PDF speichern"');
+                    
+                    this.log('✓ Druckbare HTML-Datei heruntergeladen', 'active');
+                    return;
+                }
+
+                // Pop-up erfolgreich geöffnet
+                const printHTML = this.generatePrintHTML();
+                
+                try {
+                    win.document.open();
+                    win.document.write(printHTML);
+                    win.document.close();
+                    this.log('✓ Druckvorschau geöffnet', 'active');
+                } catch(e) {
+                    console.error('Write error:', e);
+                    win.close();
+                    alert('Fehler beim Öffnen der Druckvorschau.\nBitte erlauben Sie Pop-ups für diese Seite.');
+                }
+            },
+
+            generatePrintHTML() {
+                const svg = this.outputs['svg'];
+                return `<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${this.fileName} - Drucken</title>
+    <style>
+        * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
+        }
+        @page { 
+            margin: 0mm;
+            size: auto;
+        }
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background: white;
+            overflow: hidden;
+        }
+        #container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        svg {
+            max-width: 90vw;
+            max-height: 90vh;
+            width: auto;
+            height: auto;
+            display: block;
+            shape-rendering: crispEdges;
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+        }
+        svg path {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
+        }
+        
+        /* Print Styles */
+        @media print {
+            .no-print {
+                display: none !important;
             }
-        };
+            html, body {
+                width: 100%;
+                height: 100%;
+            }
+            #container {
+                padding: 0;
+                height: 100%;
+            }
+            svg {
+                max-width: 100%;
+                max-height: 100%;
+            }
+        }
+        
+        /* Screen Only */
+        @media screen {
+            .info-banner {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                background: #2ea043;
+                color: white;
+                padding: 15px;
+                text-align: center;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+                font-size: 14px;
+                z-index: 10000;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            }
+            .print-btn {
+                position: fixed;
+                bottom: 30px;
+                left: 50%;
+                transform: translateX(-50%);
+                padding: 18px 40px;
+                background: #2ea043;
+                color: white;
+                border: none;
+                border-radius: 50px;
+                font-size: 18px;
+                font-weight: bold;
+                box-shadow: 0 4px 20px rgba(46, 160, 67, 0.4);
+                cursor: pointer;
+                z-index: 10001;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+                transition: all 0.3s ease;
+            }
+            .print-btn:hover {
+                background: #3fb950;
+                transform: translateX(-50%) scale(1.05);
+                box-shadow: 0 6px 25px rgba(46, 160, 67, 0.6);
+            }
+            .print-btn:active {
+                transform: translateX(-50%) scale(0.98);
+            }
+            #container {
+                padding-top: 70px;
+                padding-bottom: 100px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="info-banner no-print">
+        📄 Bereit zum Drucken! Drücken Sie den Button unten oder verwenden Sie <strong>STRG+P</strong> / <strong>CMD+P</strong>
+    </div>
+    
+    <div id="container">
+        ${svg}
+    </div>
 
-        // --- CODE GENERATORS ---
-        const Generators = {
-            svg: (r, n) => {
-                const p = r.layers.map(l => `<path fill="${l.color}" d="${l.path}"/>`).join('');
-                return `<?xml version="1.0" encoding="UTF-8" standalone="no"?>\n<svg width="${r.meta.w}" height="${r.meta.h}" viewBox="0 0 ${r.meta.w} ${r.meta.h}" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">\n${p}\n</svg>`;
-            },
-            
-            base64: (r, n) => {
-                const s = Generators.svg(r, n);
-                const b64 = window.btoa(unescape(encodeURIComponent(s)));
-                return `data:image/svg+xml;base64,${b64}`;
-            },
+    <button class="print-btn no-print" onclick="doPrint()">
+        🖨️ JETZT DRUCKEN / ALS PDF SPEICHERN
+    </button>
 
-            ai: (r, n) => {
-                const g = r.layers.map((l, i) => `<g id="Layer_${i+1}" data-name="${l.color}"><path fill="${l.color}" d="${l.path}"/></g>`).join('');
-                return `<?xml version="1.0" encoding="UTF-8"?>\n<svg width="${r.meta.w}" height="${r.meta.h}" viewBox="0 0 ${r.meta.w} ${r.meta.h}" xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape">\n${g}\n</svg>`;
-            },
-
-            eps: (r, n) => {
-                let s = `%!PS-Adobe-3.0 EPSF-3.0\n%%BoundingBox: 0 0 ${r.meta.w} ${r.meta.h}\n%%Title: ${n}\n1 -1 scale 0 -${r.meta.h} translate\n`;
-                const re = /M(\d+),(\d+)h(\d+)/g;
-                r.layers.forEach(l => {
-                    const c = l.color;
-                    const cr = (parseInt(c.slice(1,3),16)/255).toFixed(3);
-                    const cg = (parseInt(c.slice(3,5),16)/255).toFixed(3);
-                    const cb = (parseInt(c.slice(5,7),16)/255).toFixed(3);
-                    s += `${cr} ${cg} ${cb} setrgbcolor\n`;
-                    let m; while((m=re.exec(l.path))!==null) s+=`${m[1]} ${m[2]} ${m[3]} 1 rectfill\n`;
-                });
-                return s + "showpage\n%%EOF";
-            },
-
-            dxf: (r) => {
-                let s = "0\nSECTION\n2\nHEADER\n9\n$ACADVER\n1\nAC1009\n0\nENDSEC\n0\nSECTION\n2\nENTITIES\n";
-                const re = /M(\d+),(\d+)h(\d+)/g;
-                r.layers.forEach((l, i) => {
-                    let m; 
-                    const aci = (i % 255) + 1;
-                    while((m=re.exec(l.path))!==null) {
-                        const x=parseInt(m[1]), y=parseInt(m[2]), w=parseInt(m[3]);
-                        s += `0\nSOLID\n8\n${l.color}\n62\n${aci}\n10\n${x}\n20\n${-y}\n30\n0\n11\n${x+w}\n21\n${-y}\n31\n0\n12\n${x}\n22\n${-(y+1)}\n32\n0\n13\n${x+w}\n23\n${-(y+1)}\n33\n0\n`;
+    <script>
+        function doPrint() {
+            // Stelle sicher dass alle Farben gesetzt sind
+            const svg = document.querySelector('svg');
+            if (svg) {
+                const paths = svg.querySelectorAll('path');
+                paths.forEach(path => {
+                    const fill = path.getAttribute('fill');
+                    if (fill) {
+                        path.style.fill = fill;
+                        path.style.webkitPrintColorAdjust = 'exact';
+                        path.style.printColorAdjust = 'exact';
+                        path.style.colorAdjust = 'exact';
                     }
                 });
-                return s + "0\nENDSEC\n0\nEOF";
-            },
-
-            html: (r, n) => {
-                const s = Generators.svg(r, n);
-                // Ensure the BODY of the HTML output does NOT replicate the dark background issue
-                return `<!DOCTYPE html>\n<html lang="de">\n<head>\n<meta charset="UTF-8">\n<title>${n}</title>\n<style>\nbody{margin:0;display:grid;place-items:center;min-height:100vh;background:transparent; /* Force Transparent */}\nsvg{max-width:90vmin;height:auto;filter:drop-shadow(0 0 10px rgba(0,0,0,0.1));}\n</style>\n</head>\n<body>\n${s}\n</body>\n</html>`;
-            },
-
-            xhtml: (r, n) => {
-                const s = Generators.svg(r, n);
-                return `<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">\n<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="de" lang="de">\n<head><title>${n}</title></head>\n<body>\n<div>\n${s}\n</div>\n</body>\n</html>`;
-            },
-
-            vanilla: (r, n) => `
-export class PixelArt {
-    constructor(container) {
-        const svgNS = "http://www.w3.org/2000/svg";
-        this.svg = document.createElementNS(svgNS, "svg");
-        this.svg.setAttribute("viewBox", "0 0 ${r.meta.w} ${r.meta.h}");
-        this.svg.style.shapeRendering = "crispEdges";
+            }
+            
+            // Triggere Druck
+            window.print();
+        }
         
-        const layers = ${JSON.stringify(r.layers)};
-        layers.forEach(l => {
-            const p = document.createElementNS(svgNS, "path");
-            p.setAttribute("fill", l.color);
-            p.setAttribute("d", l.path);
-            this.svg.appendChild(p);
+        // Auto-Print nach Laden (nur wenn nicht manuell)
+        window.addEventListener('load', function() {
+            const svg = document.querySelector('svg');
+            if (svg) {
+                svg.style.shapeRendering = 'crispEdges';
+                
+                const paths = svg.querySelectorAll('path');
+                paths.forEach(path => {
+                    const fill = path.getAttribute('fill');
+                    if (fill) {
+                        path.style.fill = fill;
+                        path.style.webkitPrintColorAdjust = 'exact';
+                        path.style.printColorAdjust = 'exact';
+                    }
+                });
+            }
+            
+            // Automatischer Druck nur in Pop-up (nicht bei manuell geöffneter Datei)
+            if (window.opener) {
+                setTimeout(function() {
+                    try {
+                        window.print();
+                    } catch(e) {
+                        console.log('Auto-print failed:', e);
+                    }
+                }, 1000);
+            }
         });
         
-        container.appendChild(this.svg);
-    }
-}`,
-
-            tailwind: (r) => {
-                const b64 = Generators.base64(r, 'icon');
-                return `<!-- Tailwind v4 -->\n<div class="w-[${r.meta.w}px] h-[${r.meta.h}px] bg-[url('${b64}')] bg-cover bg-no-repeat antialiased image-pixelated"></div>`;
+        // Keyboard Shortcut
+        document.addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+                e.preventDefault();
+                doPrint();
+            }
+        });
+    <\/script>
+</body>
+</html>`;
             },
 
-            json: (r) => JSON.stringify(r, null, 2),
+            // ==========================================
+            // DIREKTER PDF-DOWNLOAD (FUNKTIONIERT GARANTIERT!)
+            // ==========================================
+            async downloadPDF() {
+                if(!this.outputs['svg']) {
+                    alert('Bitte zuerst ein Bild vektorisieren!');
+                    return;
+                }
 
-            xml: (r) => `<?xml version="1.0" encoding="UTF-8"?>\n<pixelAsset>\n  <meta>\n    <width>${r.meta.w}</width>\n    <height>${r.meta.h}</height>\n  </meta>\n  <layers>\n${r.layers.map(l=>`    <layer color="${l.color}">${l.path}</layer>`).join('\n')}\n  </layers>\n</pixelAsset>`,
+                try {
+                    this.log('Erstelle PDF...', 'active');
 
-            sql: (r, n) => {
-                const json = JSON.stringify(r).replace(/'/g, "''");
-                return `-- ANSI SQL-92\nCREATE TABLE IF NOT EXISTS assets (id SERIAL PRIMARY KEY, name VARCHAR(255), width INT, height INT, data TEXT);\nINSERT INTO assets (name, width, height, data) VALUES ('${n}', ${r.meta.w}, ${r.meta.h}, '${json}');`;
+                    // Hole SVG Element aus der Vorschau
+                    const svgContainer = document.getElementById('svgContainer');
+                    const svgElement = svgContainer.querySelector('svg');
+                    
+                    if (!svgElement) {
+                        throw new Error('SVG nicht gefunden');
+                    }
+
+                    // Hole Dimensionen
+                    const width = parseInt(svgElement.getAttribute('width')) || this.vectorData.meta.w;
+                    const height = parseInt(svgElement.getAttribute('height')) || this.vectorData.meta.h;
+                    
+                    // Erstelle Canvas für Rendering (mit hoher Auflösung für Qualität!)
+                    const scale = 4; // 4x Auflösung für gestochen scharfe Qualität
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width * scale;
+                    canvas.height = height * scale;
+                    const ctx = canvas.getContext('2d');
+                    
+                    // Weißer Hintergrund
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    
+                    // Skaliere Context für hochauflösendes Rendering
+                    ctx.scale(scale, scale);
+                    
+                    // Rendere SVG auf Canvas
+                    const svgString = new XMLSerializer().serializeToString(svgElement);
+                    const img = new Image();
+                    const svgBlob = new Blob([svgString], {type: 'image/svg+xml;charset=utf-8'});
+                    const url = URL.createObjectURL(svgBlob);
+                    
+                    // Warte auf Bild-Laden
+                    await new Promise((resolve, reject) => {
+                        img.onload = () => {
+                            ctx.drawImage(img, 0, 0, width, height);
+                            URL.revokeObjectURL(url);
+                            resolve();
+                        };
+                        img.onerror = () => {
+                            URL.revokeObjectURL(url);
+                            reject(new Error('SVG konnte nicht geladen werden'));
+                        };
+                        img.src = url;
+                    });
+
+                    // Konvertiere Canvas zu Bild-Daten
+                    const imgData = canvas.toDataURL('image/png');
+
+                    // Erstelle PDF
+                    const { jsPDF } = window.jspdf;
+                    
+                    // Berechne PDF-Dimensionen (A4 optimiert)
+                    const aspectRatio = width / height;
+                    let pdfWidth, pdfHeight, orientation;
+                    
+                    if (aspectRatio > 1) {
+                        // Querformat
+                        orientation = 'landscape';
+                        pdfWidth = 297;
+                        pdfHeight = 210;
+                    } else {
+                        // Hochformat
+                        orientation = 'portrait';
+                        pdfWidth = 210;
+                        pdfHeight = 297;
+                    }
+                    
+                    const pdf = new jsPDF({
+                        orientation: orientation,
+                        unit: 'mm',
+                        format: 'a4'
+                    });
+
+                    // Berechne Bild-Größe mit Rand
+                    const margin = 10; // 10mm Rand
+                    const maxWidth = pdfWidth - (2 * margin);
+                    const maxHeight = pdfHeight - (2 * margin);
+                    
+                    let imgWidth, imgHeight;
+                    if (aspectRatio > maxWidth / maxHeight) {
+                        imgWidth = maxWidth;
+                        imgHeight = maxWidth / aspectRatio;
+                    } else {
+                        imgHeight = maxHeight;
+                        imgWidth = maxHeight * aspectRatio;
+                    }
+                    
+                    // Zentriere Bild
+                    const x = (pdfWidth - imgWidth) / 2;
+                    const y = (pdfHeight - imgHeight) / 2;
+
+                    // Füge Bild zu PDF hinzu
+                    pdf.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight);
+
+                    // Speichere PDF
+                    const fileName = `${this.fileName}.pdf`;
+                    pdf.save(fileName);
+                    
+                    this.log(`✓ PDF gespeichert: ${fileName}`, 'active');
+
+                } catch (error) {
+                    this.log(`✗ Fehler: ${error.message}`, 'error');
+                    console.error('PDF Error:', error);
+                    alert('PDF-Fehler: ' + error.message);
+                }
             },
 
-            php: (n) => `<?php\n// PHP 8.5+ Class\nreadonly class PixelIcon_${n} {\n    public function render(): string {\n        return <<<'HTML'\n${Generators.svg({meta:{w:32,h:32},layers:[]},n)}\nHTML;\n    }\n}`,
-
-            python: (n) => `# Python 3.11\nfrom dataclasses import dataclass\n@dataclass\nclass PixelIcon:\n    name: str = "${n}"\n    def to_svg(self) -> str:\n        return """${Generators.svg({meta:{w:1,h:1},layers:[]},n)}"""`,
-
-            rust: () => `// Rust Wasm (lib.rs)\nuse wasm_bindgen::prelude::*;\n#[wasm_bindgen]\npub fn get_icon() -> String {\n    String::from(r#"<svg>...</svg>"#)\n}`,
-
-            wasm_js: () => `import init from './pkg.js';\ninit().then(() => console.log("Module Loaded"));`
+            download(id) {
+                // Validierung
+                if(!this.vectorData) {
+                    alert('Bitte zuerst ein Bild vektorisieren!');
+                    this.log('Download abgebrochen: Keine Daten', 'error');
+                    return;
+                }
+                
+                const fmt = FORMATS.find(f => f.id === id);
+                if (!fmt) {
+                    alert('Format nicht gefunden!');
+                    this.log(`Download abgebrochen: Format "${id}" nicht gefunden`, 'error');
+                    return;
+                }
+                
+                if (!this.outputs[id]) {
+                    alert('Datei wurde noch nicht generiert. Bitte warten...');
+                    this.log(`Download abgebrochen: Output für "${id}" nicht vorhanden`, 'error');
+                    return;
+                }
+                
+                try {
+                    this.log(`Starte Download: ${this.fileName}.${fmt.ext}...`, 'active');
+                    
+                    // Erstelle Blob
+                    const blob = new Blob([this.outputs[id]], {type: fmt.mime});
+                    const url = URL.createObjectURL(blob);
+                    
+                    // Erstelle versteckten Download-Link
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `${this.fileName}.${fmt.ext}`;
+                    a.style.display = 'none';
+                    
+                    // Füge zum DOM hinzu
+                    document.body.appendChild(a);
+                    
+                    // Triggere Download
+                    a.click();
+                    
+                    // Cleanup mit Verzögerung (wichtig für manche Browser!)
+                    setTimeout(() => {
+                        try {
+                            document.body.removeChild(a);
+                            URL.revokeObjectURL(url);
+                        } catch(e) {
+                            console.warn('Cleanup error:', e);
+                        }
+                    }, 150);
+                    
+                    this.log(`✓ ${fmt.label} heruntergeladen: ${this.fileName}.${fmt.ext}`, 'active');
+                    
+                } catch (error) {
+                    alert('Fehler beim Download:\n' + error.message);
+                    this.log(`✗ Download-Fehler: ${error.message}`, 'error');
+                    console.error('Download error:', error);
+                }
+            }
         };
 
         App.init();
